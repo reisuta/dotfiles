@@ -1,0 +1,10 @@
+{
+  "segments": [
+    "cwd",
+    "ssh",
+    "rbenv",
+    "git",
+    "git_stash"
+  ],
+  "theme": "~/Myapp/powerline-shell/powerline_shell/themes/my_theme.py"
+}
