@@ -1,3 +1,20 @@
+-- Windows WSL ubuntuとWindows OSのWin+Vでのクリップボード連携設定
+-- NOTE: プラグイン読み込み前に設定しないとクリップボードプロバイダーが正しく初期化されない
+vim.g.clipboard = {
+  name = "wsl-clipboard-win-v",
+  copy = {
+    -- シェルスクリプト経由で呼び出す場合、任意のパス
+    ["+"] = { "/home/reisuta/.local/bin/win-clip-copy.sh" },
+    ["*"] = { "/home/reisuta/.local/bin/win-clip-copy.sh" },
+  },
+  paste = {
+    ["+"] = { "powershell.exe", "-NoProfile", "-Command", "Get-Clipboard" },
+    ["*"] = { "powershell.exe", "-NoProfile", "-Command", "Get-Clipboard" },
+  },
+  cache_enabled = 0,
+}
+vim.o.clipboard = "unnamedplus"
+
 require("plugins")
 require("keymaps")
 require("toggleterm").setup()
@@ -11,7 +28,6 @@ vim.api.nvim_set_var('mapleader', '\\')
 vim.o.number = true
 vim.o.cursorline = true
 vim.o.cursorcolumn = true
-vim.o.clipboard = 'unnamed'
 vim.o.shiftwidth = 2
 vim.o.autoident = true
 vim.o.tabstop = 2
