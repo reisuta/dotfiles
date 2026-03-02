@@ -7,9 +7,13 @@ vim.g.clipboard = {
     ["+"] = { "/home/reisuta/.local/bin/win-clip-copy.sh" },
     ["*"] = { "/home/reisuta/.local/bin/win-clip-copy.sh" },
   },
+  -- paste = {
+  --   ["+"] = { "powershell.exe", "-NoProfile", "-Command", "Get-Clipboard" },
+  --   ["*"] = { "powershell.exe", "-NoProfile", "-Command", "Get-Clipboard" },
+  -- },
   paste = {
-    ["+"] = { "powershell.exe", "-NoProfile", "-Command", "Get-Clipboard" },
-    ["*"] = { "powershell.exe", "-NoProfile", "-Command", "Get-Clipboard" },
+    ["+"] = { "powershell.exe", "-NoProfile", "-Command",  "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Get-Clipboard" },
+    ["*"] = { "powershell.exe", "-NoProfile", "-Command",  "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Get-Clipboard" },
   },
   cache_enabled = 0,
 }
@@ -52,3 +56,7 @@ augroup END
 vim.api.nvim_create_user_command('SS', 'so ~/.config/nvim/init.lua', { nargs = 0 })
 vim.api.nvim_create_user_command('Pwd', 'pwd', { nargs = 0 })
 
+-- windows設定
+vim.opt.encoding = "utf-8"
+vim.opt.fileencoding = "utf-8"
+vim.opt.fileencodings = { "utf-8", "cp932", "sjis", "euc-jp", "iso-2022-jp" }
