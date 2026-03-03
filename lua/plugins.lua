@@ -1,6 +1,6 @@
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 
-if not vim.loop.fs_stat(lazypath) then
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
   vim.fn.system({
     "git",
     "clone",
@@ -19,25 +19,25 @@ require('lazy').setup {
   {'akinsho/toggleterm.nvim'},
   {'lukas-reineke/indent-blankline.nvim', main = "ibl", opts = {} },
 	{'akinsho/bufferline.nvim', version = "*", dependencies = 'nvim-tree/nvim-web-devicons'},
-  {"nvim-treesitter/nvim-treesitter", 
-	  build = ":TSUpdate",
-		config = function ()
-      local configs = require("nvim-treesitter.configs")
-      configs.setup({
-          ensure_installed = { "c", "lua", "vim", "vimdoc", "ruby", "python", "typescript", "tsx", "query", "elixir", "heex", "javascript", "html", "css", "vue" },
-          sync_install = false,
-          highlight = { enable = true },
-          indent = { enable = true },
-        })
-    end
-	},
+  {"nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    config = function()
+      -- nvim-treesitter v2: configs モジュールは廃止
+      -- ハイライトはパーサーインストール後に Neovim が自動で有効化する
+      require("nvim-treesitter.install").install({
+        "c", "lua", "vim", "vimdoc", "ruby", "python",
+        "typescript", "tsx", "javascript", "html", "css", "vue"
+      })
+    end,
+  },
   {'lewis6991/gitsigns.nvim',
     config = function()
       require('settings/gitsigns')
     end
   },
   {'neoclide/coc.nvim',
-    branch = 'release'
+    branch = 'release',
+    cond = vim.fn.executable('node') == 1,
   },
   {'thinca/vim-scouter'},
   {"EdenEast/nightfox.nvim"},
