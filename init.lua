@@ -1,11 +1,26 @@
+-- nvm で管理している node / tree-sitter-cli を nvim からも使えるようにする
+do
+  local nvm_dir = vim.fn.expand("$HOME/.nvm")
+  local alias_file = nvm_dir .. "/alias/default"
+  if vim.fn.filereadable(alias_file) == 1 then
+    local version = vim.fn.readfile(alias_file)[1]
+    if version then
+      local node_bin = nvm_dir .. "/versions/node/" .. version .. "/bin"
+      if vim.fn.isdirectory(node_bin) == 1 then
+        vim.env.PATH = node_bin .. ":" .. vim.env.PATH
+      end
+    end
+  end
+end
+
 -- Windows WSL ubuntuとWindows OSのWin+Vでのクリップボード連携設定
 -- NOTE: プラグイン読み込み前に設定しないとクリップボードプロバイダーが正しく初期化されない
 vim.g.clipboard = {
   name = "wsl-clipboard-win-v",
   copy = {
     -- シェルスクリプト経由で呼び出す場合、任意のパス
-    ["+"] = { "/home/reisuta/.local/bin/win-clip-copy.sh" },
-    ["*"] = { "/home/reisuta/.local/bin/win-clip-copy.sh" },
+    ["+"] = { vim.fn.expand("$HOME") .. "/.local/bin/win-clip-copy.sh" },
+    ["*"] = { vim.fn.expand("$HOME") .. "/.local/bin/win-clip-copy.sh" },
   },
   -- paste = {
   --   ["+"] = { "powershell.exe", "-NoProfile", "-Command", "Get-Clipboard" },
@@ -18,6 +33,18 @@ vim.g.clipboard = {
   cache_enabled = 0,
 }
 vim.o.clipboard = "unnamedplus"
+
+-- treesitter パーサー未インストール時のエラーを防ぐ
+-- (build-essential + :TSUpdate 後は通常通り動作する)
+do
+  local orig = vim.treesitter.start
+  vim.treesitter.start = function(bufnr, lang)
+    local ok, err = pcall(orig, bufnr, lang)
+    if not ok then
+      vim.notify("treesitter: parser not ready for " .. tostring(lang), vim.log.levels.DEBUG)
+    end
+  end
+end
 
 require("plugins")
 require("keymaps")
@@ -33,7 +60,7 @@ vim.o.number = true
 vim.o.cursorline = true
 vim.o.cursorcolumn = true
 vim.o.shiftwidth = 2
-vim.o.autoident = true
+vim.o.autoindent = true
 vim.o.tabstop = 2
 vim.o.expandtab = true
 vim.o.list = true
