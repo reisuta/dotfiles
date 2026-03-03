@@ -13,7 +13,6 @@ map('', 'gx', '<Plug>(openbrowser-smart-search)', opts)
 map('i', '(', '()<LEFT>', opts)
 map('i', '[', '[]<LEFT>', opts)
 map('i', '{', '{}<LEFT>', opts)
--- 参考記事 https://densan-labs.net/tech/lua/chapter2.html
 map('i', "\'", "\'\'<LEFT>", opts) --luaのエスケープパターン1 "\"
 map('i', [["]], [[""<LEFT>]], opts) --luaのエスケープパターン2 [[]]
 
