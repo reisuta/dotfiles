@@ -1,0 +1,125 @@
+# =============================================================
+# Alacritty Configuration (Windows + WSL2)
+# =============================================================
+#
+# ■ セットアップ手順:
+#   1. Alacritty をインストール
+#
+#   2. Nerd Font をインストール（Neovim のアイコン表示に必須）
+#      winget install DEVCOM.JetBrainsMonoNerdFont
+#
+#   3. この設定ファイルを Windows 側に配置
+#      WIN_USER=$(powershell.exe -NoProfile -Command '$env:USERNAME' | tr -d '\r')
+#      mkdir -p "/mnt/c/Users/$WIN_USER/AppData/Roaming/alacritty"
+#      cp ~/dotfiles/alacritty.toml "/mnt/c/Users/$WIN_USER/AppData/Roaming/alacritty/alacritty.toml"
+#
+# NOTE: WSL→Windows へのシンボリックリンクは Linux 形式のため Windows アプリから辿れない。
+# dotfiles を変更した場合は手順 3 の cp コマンドを再実行すること。
+
+[terminal.shell]
+# WSL2を直接起動し、ホームディレクトリで開始
+program = "wsl.exe"
+args = ["--cd", "~"]
+
+[env]
+TERM = "xterm-256color"
+
+# ----- ウィンドウ -----
+[window]
+padding.x = 4
+padding.y = 4
+startup_mode = "Maximized"
+
+# ----- フォント -----
+[font]
+size = 14.0
+
+[font.normal]
+# Nerd Font 必須（bufferline.nvim, lualine 等のアイコン表示に必要）
+# インストール: winget install DEVCOM.JetBrainsMonoNerdFont
+# 未インストールの場合は "Cascadia Mono" をフォールバックとして使用
+family = "JetBrainsMono Nerd Font Mono"
+style = "Regular"
+
+[font.bold]
+style = "Bold"
+
+[font.italic]
+style = "Italic"
+
+# ----- カーソル -----
+[cursor.style]
+shape = "Block"
+blinking = "On"
+
+[cursor.vi_mode_style]
+shape = "Block"
+
+# ----- スクロール -----
+[scrolling]
+history = 10000
+
+# ----- キーバインド -----
+[[keyboard.bindings]]
+key = "V"
+mods = "Control|Shift"
+action = "Paste"
+
+[[keyboard.bindings]]
+key = "C"
+mods = "Control|Shift"
+action = "Copy"
+
+[[keyboard.bindings]]
+key = "N"
+mods = "Control|Shift"
+action = "SpawnNewInstance"
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Alt"
+action = "ToggleFullscreen"
+
+[[keyboard.bindings]]
+key = "Plus"
+mods = "Control"
+action = "IncreaseFontSize"
+
+[[keyboard.bindings]]
+key = "Minus"
+mods = "Control"
+action = "DecreaseFontSize"
+
+[[keyboard.bindings]]
+key = "Key0"
+mods = "Control"
+action = "ResetFontSize"
+
+# ----- カラースキーム (Tokyo Night) -----
+[colors.primary]
+background = "#0a1628"
+foreground = "#c0caf5"
+
+[colors.normal]
+black   = "#15161e"
+red     = "#f7768e"
+green   = "#9ece6a"
+yellow  = "#e0af68"
+blue    = "#7aa2f7"
+magenta = "#bb9af7"
+cyan    = "#7dcfff"
+white   = "#a9b1d6"
+
+[colors.bright]
+black   = "#414868"
+red     = "#f7768e"
+green   = "#9ece6a"
+yellow  = "#e0af68"
+blue    = "#7aa2f7"
+magenta = "#bb9af7"
+cyan    = "#7dcfff"
+white   = "#c0caf5"
+
+[colors.selection]
+background = "#33467c"
+foreground = "#c0caf5"
