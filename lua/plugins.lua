@@ -42,7 +42,7 @@ require('lazy').setup {
   {'thinca/vim-scouter'},
   {"EdenEast/nightfox.nvim"},
   {'nvim-lualine/lualine.nvim'},
-  {'norcalli/nvim-colorizer.lua'},
+  {'catgoose/nvim-colorizer.lua'},
   {'nvim-telescope/telescope.nvim'},
   {'nvim-lua/plenary.nvim'},
   {'simeji/winresizer'},
