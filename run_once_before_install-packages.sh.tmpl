@@ -1,0 +1,116 @@
+#!/bin/bash
+# OS を判定して必要なパッケージを一括インストールする。
+# chezmoi が apply 前に1度だけ実行する (script content が変わると再実行される)。
+#
+# パッケージリストのハッシュを埋め込むことで、リスト変更時に再実行される:
+#   Brewfile:        {{ include "Brewfile" | sha256sum }}
+#   archpkgs.txt:    {{ include "archpkgs.txt" | sha256sum }}
+#   archpkgs-gui:    {{ include "archpkgs-gui.txt" | sha256sum }}
+#   aptpkgs.txt:     {{ include "aptpkgs.txt" | sha256sum }}
+
+set -euo pipefail
+
+DOTFILES="{{ .chezmoi.sourceDir }}"
+
+{{ if eq .chezmoi.os "darwin" -}}
+# ============================================================
+# macOS
+# ============================================================
+echo "==> [macOS] Installing packages via Homebrew"
+
+# Homebrew が無ければインストール
+if ! command -v brew >/dev/null 2>&1; then
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    if [ -f /opt/homebrew/bin/brew ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+fi
+
+brew bundle --file="$DOTFILES/Brewfile"
+
+{{ else if eq .chezmoi.os "linux" -}}
+{{- $isWsl := .chezmoi.kernel.osrelease | lower | contains "microsoft" -}}
+{{- $distroId := .chezmoi.osRelease.id -}}
+
+{{   if eq $distroId "arch" -}}
+# ============================================================
+# Arch Linux (native or WSL Arch)
+# ============================================================
+echo "==> [Arch] Installing packages via pacman"
+
+sudo pacman -Syu --noconfirm
+
+# ベースパッケージ
+mapfile -t PKGS < <(grep -v '^#' "$DOTFILES/archpkgs.txt" | grep -v '^$')
+sudo pacman -S --needed --noconfirm "${PKGS[@]}"
+
+{{     if not $isWsl -}}
+# GUI パッケージ (WSL Arch では Windows 側ターミナルを使うので除外)
+mapfile -t GUI_PKGS < <(grep -v '^#' "$DOTFILES/archpkgs-gui.txt" | grep -v '^$')
+sudo pacman -S --needed --noconfirm "${GUI_PKGS[@]}"
+{{     end -}}
+
+{{   else if or (eq $distroId "ubuntu") (eq $distroId "debian") -}}
+# ============================================================
+# Ubuntu / Debian (native or WSL)
+# ============================================================
+echo "==> [Ubuntu/Debian] Installing packages via apt"
+
+sudo apt update
+
+mapfile -t PKGS < <(grep -v '^#' "$DOTFILES/aptpkgs.txt" | grep -v '^$')
+sudo apt install -y "${PKGS[@]}"
+
+# NOTE: Ubuntu 系は WSL Ubuntu のみを想定しているため GUI パッケージは導入しない。
+# Ubuntu native を使うようになったら GUI ターミナル等を別途追加すること。
+
+# apt 標準にないツールを別経路で導入
+if ! command -v atuin >/dev/null 2>&1; then
+    echo "==> Installing atuin"
+    curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
+fi
+
+if ! command -v mise >/dev/null 2>&1; then
+    echo "==> Installing mise"
+    curl https://mise.run | sh
+fi
+
+if ! command -v eza >/dev/null 2>&1; then
+    echo "==> Installing eza (via cargo or skip)"
+    if command -v cargo >/dev/null 2>&1; then
+        cargo install eza
+    else
+        echo "  cargo not found; skipping eza (install rustup later if needed)"
+    fi
+fi
+
+{{   else -}}
+echo "未対応のディストリビューション: {{ $distroId }}"
+exit 1
+{{   end -}}
+
+{{ else -}}
+echo "未対応の OS: {{ .chezmoi.os }}"
+exit 1
+{{ end -}}
+
+# ============================================================
+# 全 OS 共通: oh-my-zsh + powerlevel10k
+# ============================================================
+
+ZSH_DIR="${ZSH:-$HOME/.oh-my-zsh}"
+
+if [ ! -d "$ZSH_DIR" ]; then
+    echo "==> Installing oh-my-zsh"
+    RUNZSH=no CHSH=no \
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
+        "" --unattended
+fi
+
+P10K_DIR="${ZSH_CUSTOM:-$ZSH_DIR/custom}/themes/powerlevel10k"
+if [ ! -d "$P10K_DIR" ]; then
+    echo "==> Installing powerlevel10k"
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
+fi
+
+echo "==> Package installation complete"

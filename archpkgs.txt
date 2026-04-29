@@ -1,0 +1,29 @@
+# Arch Linux (native + WSL Arch 共通) ベースパッケージ
+# `pacman -S --needed --noconfirm $(grep -v '^#' archpkgs.txt | grep -v '^$')` で一括インストール
+
+# シェル・ターミナル基盤
+git
+zsh
+tmux
+neovim
+
+# CLI ユーティリティ
+fzf
+ripgrep
+fd
+bat
+eza
+zoxide
+atuin
+
+# バージョン管理
+mise
+
+# GitHub CLI
+github-cli
+
+# Powerlevel10k (Arch には公式パッケージがある)
+zsh-theme-powerlevel10k
+
+# Nerd Font (kitty で使用)
+ttf-monaspace-nerd

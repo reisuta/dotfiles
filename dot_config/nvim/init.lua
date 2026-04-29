@@ -15,24 +15,25 @@ end
 
 -- Windows WSL ubuntuとWindows OSのWin+Vでのクリップボード連携設定
 -- NOTE: プラグイン読み込み前に設定しないとクリップボードプロバイダーが正しく初期化されない
-vim.g.clipboard = {
-  name = "wsl-clipboard-win-v",
-  copy = {
-    -- シェルスクリプト経由で呼び出す場合、任意のパス
-    ["+"] = { vim.fn.expand("$HOME") .. "/.local/bin/win-clip-copy.sh" },
-    ["*"] = { vim.fn.expand("$HOME") .. "/.local/bin/win-clip-copy.sh" },
-  },
-  -- paste = {
-  --   ["+"] = { "powershell.exe", "-NoProfile", "-Command", "Get-Clipboard" },
-  --   ["*"] = { "powershell.exe", "-NoProfile", "-Command", "Get-Clipboard" },
-  -- },
-  paste = {
-    ["+"] = { "powershell.exe", "-NoProfile", "-Command",  "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Get-Clipboard" },
-    ["*"] = { "powershell.exe", "-NoProfile", "-Command",  "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Get-Clipboard" },
-  },
-  cache_enabled = 0,
-}
-vim.o.clipboard = "unnamedplus"
+if vim.fn.has('wsl') == 1 then
+  -- WSL: PowerShell 経由で Windows クリップボードと連携
+  vim.g.clipboard = {
+    name = "wsl-clipboard-win-v",
+    copy = {
+      ["+"] = { vim.fn.expand("$HOME") .. "/.local/bin/win-clip-copy.sh" },
+      ["*"] = { vim.fn.expand("$HOME") .. "/.local/bin/win-clip-copy.sh" },
+    },
+    paste = {
+      ["+"] = { "powershell.exe", "-NoProfile", "-Command", "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Get-Clipboard" },
+      ["*"] = { "powershell.exe", "-NoProfile", "-Command", "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Get-Clipboard" },
+    },
+    cache_enabled = 0,
+  }
+  vim.o.clipboard = "unnamedplus"
+else
+  -- macOS / Linux native: OS 標準のクリップボード (pbcopy/xclip 等を nvim が自動選択)
+  vim.o.clipboard = "unnamedplus"
+end
 
 -- treesitter パーサー未インストール時のエラーを防ぐ
 -- (build-essential + :TSUpdate 後は通常通り動作する)

@@ -1,0 +1,18 @@
+# vim: ft=toml
+# このテンプレートは `chezmoi init` 時に処理され、
+# ~/.config/chezmoi/chezmoi.toml に展開される。
+
+# chezmoi が source として使うパス (この repo を直接 source として扱う)
+sourceDir = "{{ .chezmoi.sourceDir }}"
+
+# 設定ファイルはコピーではなくシンボリックリンクで配置する。
+# 理由: ~/dotfiles を直接編集すれば即時反映され、
+# `chezmoi apply` を毎回叩かなくても良くなるため。
+# (.tmpl ファイルだけは生成物なのでコピーで配置される)
+mode = "symlink"
+
+[edit]
+    command = "nvim"
+
+[diff]
+    pager = "less -R"
