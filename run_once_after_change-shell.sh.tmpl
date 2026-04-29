@@ -1,0 +1,35 @@
+#!/bin/bash
+# デフォルトシェルを zsh に切り替える。
+# chezmoi が apply 後に1度だけ実行する。
+#
+# 「dot_zshrc が配置されているのにシェルが bash のまま」を防ぐのが役目。
+
+set -euo pipefail
+
+ZSH_PATH="$(command -v zsh || true)"
+
+if [ -z "$ZSH_PATH" ]; then
+    echo "zsh が見つからないためシェル切替はスキップします"
+    exit 0
+fi
+
+# /etc/shells に zsh のパスが無ければ追加 (Linux で必要なケースあり)
+if ! grep -qF "$ZSH_PATH" /etc/shells; then
+    echo "==> $ZSH_PATH を /etc/shells に追加"
+    echo "$ZSH_PATH" | sudo tee -a /etc/shells >/dev/null
+fi
+
+# 現在のデフォルトシェルを取得 (Linux: getent / macOS: dscl)
+{{ if eq .chezmoi.os "darwin" -}}
+CURRENT_SHELL="$(dscl . -read "/Users/$USER" UserShell 2>/dev/null | awk '{print $2}')"
+{{ else -}}
+CURRENT_SHELL="$(getent passwd "$USER" | cut -d: -f7)"
+{{ end -}}
+
+if [ "$CURRENT_SHELL" != "$ZSH_PATH" ]; then
+    echo "==> デフォルトシェルを $ZSH_PATH に変更"
+    chsh -s "$ZSH_PATH"
+    echo "    次回ログイン時から有効になります"
+else
+    echo "==> デフォルトシェルは既に $ZSH_PATH です"
+fi
