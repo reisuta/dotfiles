@@ -1,0 +1,63 @@
+{{/*
+.chezmoiignore: chezmoi が apply 時に無視するファイル/ディレクトリ。
+パスは target 側 (ホーム起点) で指定すること。
+
+ターミナル方針:
+  - macOS       : WezTerm
+  - Arch native : kitty
+  - WSL         : Windows 側の WezTerm を使うので Linux 側には不要
+  - Other Linux : kitty (フォールバック)
+*/}}
+
+# ============================================================
+# リポジトリのメタファイル (target には配置しない)
+# ============================================================
+README.md
+old
+bootstrap.sh
+justfile
+scripts
+Brewfile
+archpkgs.txt
+archpkgs-gui.txt
+aptpkgs.txt
+aptpkgs-gui.txt
+.gitattributes
+
+# ============================================================
+# OS 別の除外
+# ============================================================
+
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS: kitty / redshift / win-clip-copy.sh は不要
+.config/kitty
+.config/redshift.conf
+.local/bin/win-clip-copy.sh
+{{ end -}}
+
+{{ if eq .chezmoi.os "linux" -}}
+{{- $isWsl := .chezmoi.kernel.osrelease | lower | contains "microsoft" -}}
+{{- $isArch := eq .chezmoi.osRelease.id "arch" -}}
+{{   if $isWsl -}}
+# WSL: ターミナル設定は Windows 側で管理
+.config/kitty
+.config/wezterm
+.config/redshift.conf
+{{   else if $isArch -}}
+# Arch native: kitty を使う
+.config/wezterm
+.local/bin/win-clip-copy.sh
+{{   else -}}
+# その他 Linux: kitty をデフォルト採用
+.config/wezterm
+.local/bin/win-clip-copy.sh
+{{   end -}}
+{{ end -}}
+
+{{ if and (ne .chezmoi.os "linux") (ne .chezmoi.os "darwin") -}}
+# 想定外 OS: 最低限のシェル・nvim・tmux のみ
+.config/kitty
+.config/wezterm
+.config/redshift.conf
+.local/bin/win-clip-copy.sh
+{{ end -}}

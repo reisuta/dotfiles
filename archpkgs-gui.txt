@@ -1,0 +1,5 @@
+# Arch Linux (native のみ) GUI パッケージ
+# WSL Arch では除外される (ターミナルは Windows 側 WezTerm を使うため)
+
+# Arch ネイティブのメインターミナル
+kitty

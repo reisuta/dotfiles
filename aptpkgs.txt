@@ -1,0 +1,26 @@
+# Ubuntu / Debian (native + WSL Ubuntu 共通) ベースパッケージ
+# `sudo apt install -y $(grep -v '^#' aptpkgs.txt | grep -v '^$')` で一括インストール
+#
+# NOTE: apt 標準リポジトリにないツール (eza / atuin / mise) は
+# run_once_before_install-packages.sh.tmpl 内で別経路 (cargo / curl) でインストールする。
+
+# シェル・ターミナル基盤
+git
+zsh
+tmux
+neovim
+
+# CLI ユーティリティ
+fzf
+ripgrep
+fd-find
+bat
+zoxide
+
+# GitHub CLI
+gh
+
+# ビルド系 (cargo install のフォールバック用)
+build-essential
+curl
+ca-certificates
