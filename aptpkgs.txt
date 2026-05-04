@@ -20,6 +20,9 @@ zoxide
 # GitHub CLI
 gh
 
+# ステータススクリプト類で使用 (Ubuntu はほぼ標準で入っているが明示)
+python3
+
 # ビルド系 (cargo install のフォールバック用)
 build-essential
 curl

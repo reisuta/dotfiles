@@ -570,7 +570,9 @@ chezmoi forget ~/.gitconfig
 │   ├── wezterm/                  → ~/.config/wezterm/  (macOS のみ)
 │   └── redshift.conf             → ~/.config/redshift.conf (Linux ネイティブのみ)
 ├── private_dot_local/bin/
-│   └── executable_win-clip-copy.sh  → ~/.local/bin/win-clip-copy.sh (WSL のみ)
+│   ├── executable_win-clip-copy.sh     → ~/.local/bin/win-clip-copy.sh (WSL のみ)
+│   ├── executable_claude-code-status   → ~/.local/bin/claude-code-status (Claude Code statusLine)
+│   └── executable_tmux-claude-status   → ~/.local/bin/tmux-claude-status (tmux ステータスバー)
 │
 ├── run_once_before_install-packages.sh.tmpl  ← chezmoi が apply 前に1度だけ実行
 ├── run_once_after_change-shell.sh.tmpl        ← chezmoi が apply 後に1度だけ実行
