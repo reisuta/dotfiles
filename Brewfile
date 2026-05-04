@@ -16,6 +16,9 @@ brew "eza"
 brew "zoxide"
 brew "atuin"
 
+# プロンプト
+brew "starship"
+
 # バージョン管理 (zshrc で `mise activate zsh` 使用)
 brew "mise"
 
