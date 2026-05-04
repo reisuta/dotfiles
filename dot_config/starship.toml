@@ -1,0 +1,66 @@
+# Starship prompt config
+# 配色は dot_tmux.conf 既存パレットに統一:
+#   #191726 (dark bg)  #cdcbe0 (light text)
+#   #8700af (purple = colour91)  #87ff5f (yellow-green = colour119)
+
+add_newline = true
+
+format = """
+$directory\
+$git_branch\
+$git_status\
+$python\
+$cmd_duration\
+$time\
+$line_break\
+$character"""
+
+[directory]
+truncation_length = 4
+truncate_to_repo = false
+truncation_symbol = "…/"
+home_symbol = "~"
+read_only = " 󰌾 "
+format = "[ $path]($style)[$read_only]($read_only_style)"
+style = "fg:#8700af bg:#191726"
+read_only_style = "fg:#87ff5f bg:#191726"
+
+[git_branch]
+symbol = " "
+format = "[  $symbol$branch]($style)"
+style = "fg:#87ff5f bg:#191726"
+
+[git_status]
+format = "[  $all_status$ahead_behind]($style)"
+style = "fg:#cdcbe0 bg:#191726"
+conflicted = "=${count}"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+up_to_date = ""
+untracked = "?${count}"
+stashed = "\\$${count}"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "✘${count}"
+
+[python]
+symbol = "󰌠 "
+format = "[  $symbol$version]($style)"
+style = "fg:#cdcbe0 bg:#191726"
+
+[cmd_duration]
+min_time = 2_000
+format = "[  took $duration]($style)"
+style = "fg:#87ff5f bg:#191726"
+
+[time]
+disabled = false
+format = "[  $time ]($style)"
+style = "fg:#cdcbe0 bg:#191726"
+time_format = "%H:%M"
+
+[character]
+success_symbol = "[❯](bold fg:#8700af)"
+error_symbol = "[❯](bold fg:#87ff5f)"

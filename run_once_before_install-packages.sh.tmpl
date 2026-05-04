@@ -84,6 +84,11 @@ if ! command -v eza >/dev/null 2>&1; then
     fi
 fi
 
+if ! command -v starship >/dev/null 2>&1; then
+    echo "==> Installing starship"
+    curl -sS https://starship.rs/install.sh | sh -s -- --yes
+fi
+
 {{   else -}}
 echo "未対応のディストリビューション: {{ $distroId }}"
 exit 1
@@ -95,7 +100,7 @@ exit 1
 {{ end -}}
 
 # ============================================================
-# 全 OS 共通: oh-my-zsh + powerlevel10k
+# 全 OS 共通: oh-my-zsh (プロンプトは Starship を使用)
 # ============================================================
 
 ZSH_DIR="${ZSH:-$HOME/.oh-my-zsh}"
@@ -105,12 +110,6 @@ if [ ! -d "$ZSH_DIR" ]; then
     RUNZSH=no CHSH=no \
         sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
         "" --unattended
-fi
-
-P10K_DIR="${ZSH_CUSTOM:-$ZSH_DIR/custom}/themes/powerlevel10k"
-if [ ! -d "$P10K_DIR" ]; then
-    echo "==> Installing powerlevel10k"
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
 fi
 
 echo "==> Package installation complete"

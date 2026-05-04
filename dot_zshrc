@@ -1,9 +1,5 @@
-# p10k instant prompt は必ず最初に置く
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
-ZSH_THEME="powerlevel10k/powerlevel10k"
+# プロンプトは Starship に委譲するので oh-my-zsh のテーマは無効化
+ZSH_THEME=""
 
 eval "$(zoxide init zsh)"
 
@@ -168,8 +164,8 @@ goo() {
 
 # export PATH="/opt/homebrew/opt/postgresql@13/bin:$PATH"
 
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# Starship プロンプト初期化 (oh-my-zsh の後)
+eval "$(starship init zsh)"
 export PATH="$HOME/.local/bin:$PATH"
 
 # ホスト固有・非公開の設定

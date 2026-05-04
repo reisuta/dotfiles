@@ -25,8 +25,8 @@ github-cli
 # ステータススクリプト類で使用
 python
 
-# Powerlevel10k (Arch には公式パッケージがある)
-zsh-theme-powerlevel10k
+# プロンプト
+starship
 
 # Nerd Font (kitty で使用)
 ttf-monaspace-nerd
