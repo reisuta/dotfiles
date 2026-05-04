@@ -23,13 +23,29 @@
 
 ## クイックスタート
 
+OS によって最適な入り方が違うので以下から選ぶ。どちらでも最終的にやることは同じ (chezmoi が全パッケージインストール + 設定配置 + シェル切替まで実行)。
+
+### macOS / Ubuntu / WSL — chezmoi ワンライナー
+
 ```bash
-git clone https://github.com/reisuta/dotfiles ~/dotfiles
-cd ~/dotfiles
-./bootstrap.sh
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply reisuta
 ```
 
-これで完了。詳細は [`./bootstrap.sh`](#bootstrapsh) の項を参照。
+curl 1コマンドで chezmoi 取得 → リポ clone → apply まで完結。`just` も `git` も事前に要らない。
+
+### Arch Linux — `just install`
+
+`pacman` から `just` / `git` / `chezmoi` が直接取れるので、こちらの方が手数少なめ:
+
+```bash
+sudo pacman -S --needed just git chezmoi
+git clone https://github.com/reisuta/dotfiles ~/dotfiles && cd ~/dotfiles
+just install
+```
+
+`just install` はローカル clone を chezmoi のソースとして init --apply する。`chezmoi` を pacman で入れ忘れても recipe 内で自動取得するので最低 `pacman -S just git` だけでも OK。
+
+詳細は [`chezmoi init --apply`](#chezmoi-init---apply) の項を参照。
 
 ---
 
@@ -58,57 +74,44 @@ cd ~/dotfiles
 
 新規マシン / 新規環境で「最初の1回だけ」叩くコマンド群。
 
-#### `./bootstrap.sh`
+#### `chezmoi init --apply`
 
 > 🔴 大きな副作用 (パッケージインストール、シェル変更、sudo 要)
 
 **いつ使う?**
-- 新規マシンに dotfiles を導入するとき
-- リポジトリを clone した直後、最初の1回
+- 新規マシンに dotfiles を導入するとき (= マシンセットアップで唯一叩くコマンド)
 
 **何が起きる?**
 
-1. OS 判定 (macOS / Arch / Ubuntu / WSL)
-2. **Linux系のみ** sudo 認証セッションを開始 (5分ごとに自動延長)
-3. `just` と `chezmoi` をパッケージマネージャで導入
-   - macOS: `brew install just chezmoi`
-   - Arch: `sudo pacman -S just chezmoi`
-   - Ubuntu: `apt + curl` (just/chezmoi は curl で `~/.local/bin` に取得)
-4. `chezmoi init --apply` を実行 (詳しくは下の項目)
+1. chezmoi バイナリを `~/bin/` (or `~/.local/bin/`) にダウンロード
+2. `github.com/reisuta/dotfiles` を `~/.local/share/chezmoi` に clone
+3. `~/.config/chezmoi/chezmoi.toml` を生成 (`.chezmoi.toml.tmpl` から)
+   - `mode = "symlink"` → 設定ファイルは symlink 配置
+4. `run_once_before_install-packages.sh.tmpl` 実行 (1回限り)
+   - macOS: `brew bundle --file=Brewfile`
+   - Arch: `pacman -S` でパッケージ一括インストール
+   - Ubuntu: `apt install` + curl で atuin/mise/eza/starship を別途取得
+   - 全 OS 共通: oh-my-zsh 取得 (プロンプトは Starship)
+5. 設定ファイルを **symlink** で配置 (例: `~/.zshrc` → `~/.local/share/chezmoi/dot_zshrc`)
+6. `run_once_after_change-shell.sh.tmpl` 実行 (1回限り)
+   - `/etc/shells` に zsh のパスを追加 (必要なら)
+   - `chsh -s $(which zsh)` でデフォルトシェル切替
 
-**例**
+**例 (macOS / Ubuntu / WSL)**
 
 ```bash
-git clone https://github.com/reisuta/dotfiles ~/dotfiles
-cd ~/dotfiles
-./bootstrap.sh
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply reisuta
+```
+
+**例 (Arch Linux)**
+
+```bash
+sudo pacman -S --needed just git chezmoi
+git clone https://github.com/reisuta/dotfiles ~/dotfiles && cd ~/dotfiles
+just install
 ```
 
 **所要時間**: パッケージダウンロードがあるため初回は 5〜15 分。
-
----
-
-#### `chezmoi init --source=$(pwd) --apply`
-
-> 🔴 大きな副作用
-
-**いつ使う?**
-- `bootstrap.sh` の中で自動的に呼ばれる (通常は直接叩かない)
-- `bootstrap.sh` をスキップして手動で chezmoi を初期化したい場合
-
-**何が起きる?**
-
-1. `~/.config/chezmoi/chezmoi.toml` を生成 (`.chezmoi.toml.tmpl` から)
-   - `mode = "symlink"` を設定 → 以降ファイルは symlink で配置される
-2. `run_once_before_install-packages.sh.tmpl` 実行 (1回限り)
-   - macOS: `brew bundle --file=Brewfile`
-   - Arch: `pacman -S` でパッケージ一括インストール
-   - Ubuntu: `apt install` + curl で atuin/mise/eza 別途取得
-   - 全 OS 共通: oh-my-zsh + powerlevel10k 取得
-3. 設定ファイルを **symlink** で配置 (例: `~/.zshrc` → `~/dotfiles/dot_zshrc`)
-4. `run_once_after_change-shell.sh.tmpl` 実行 (1回限り)
-   - `/etc/shells` に zsh のパスを追加 (必要なら)
-   - `chsh -s $(which zsh)` でデフォルトシェル切替
 
 ---
 
@@ -263,27 +266,36 @@ git -C ~/dotfiles status   # ~/dotfiles/dot_gitconfig が untracked で出る
 ```bash
 $ just
 Available recipes:
-    backup         # 現在の chezmoi 管理状態をアーカイブ (バックアップ)
-    brewfile-dump  # 現在のローカル brew 環境から Brewfile を再生成 (macOS 専用)
+    install        # 初回セットアップ (chezmoi が無ければ取得し、このリポジトリを source として init --apply)
     doctor         # 環境ヘルスチェック (副作用なし)
-    install        # 新規環境の初期セットアップ
     lint           # シェルスクリプトの静的解析
     plugins-update # Neovim プラグインを最新化 (lazy.nvim sync)
+    brewfile-dump  # 現在のローカル brew 環境から Brewfile を再生成 (macOS 専用)
+    backup         # 現在の chezmoi 管理状態をアーカイブ (バックアップ)
     status         # chezmoi 管理対象 + 未管理ファイルの一覧
-    test           # 全 OS でテスト (CI 用)
-    test-arch      # Arch コンテナで bootstrap を検証
-    test-ubuntu    # Ubuntu コンテナで bootstrap を検証
 ```
 
 ---
 
 #### `just install`
 
-> 🔴 大きな副作用 (= `./bootstrap.sh` と同じ)
+> 🔴 大きな副作用 (パッケージインストール、シェル変更、sudo 要)
 
 **いつ使う?**
-- `bootstrap.sh` を覚えていないが just は覚えているとき
-- `./bootstrap.sh` と機能的には同じ (just 経由で叩いているだけ)
+- Arch Linux の新規マシンセットアップ (chezmoi ワンライナーより手数が少ない)
+- 既に `~/dotfiles` を git clone してあって、ローカル clone を source として apply したいとき
+
+**何が起きる?**
+1. `chezmoi` が PATH に無ければ `~/.local/bin/chezmoi` に curl 取得
+2. `chezmoi init --source=$(justfile_directory) --apply` 実行 (= ローカルリポジトリを chezmoi の source として登録 + apply)
+3. 以降は `chezmoi init --apply` の手順と同じ (run_once が走ってパッケージインストール等)
+
+**例**
+
+```bash
+cd ~/dotfiles
+just install
+```
 
 ---
 
@@ -300,7 +312,7 @@ Available recipes:
 - 副作用ゼロで以下を確認:
   - OS / WSL / ディストリ判定結果
   - zsh がインストール済 + デフォルトシェル化されているか
-  - oh-my-zsh / powerlevel10k の存在
+  - oh-my-zsh / starship の存在
   - コアツール (git/nvim/tmux/fzf/rg/zoxide/bat) の存在
   - オプションツール (eza/fd/atuin/mise/gh) の存在
   - OS別のターミナル (macOS: WezTerm, Arch: kitty)
@@ -319,39 +331,12 @@ $ just doctor
   ✓ zsh installed: /opt/homebrew/bin/zsh
   ✓ default shell is zsh
   ✓ oh-my-zsh installed
-  ✓ powerlevel10k installed
+  ✓ starship installed
 
 ==> コアツール
   ✓ git
   ✓ nvim
   ...
-```
-
----
-
-#### `just test-arch` / `just test-ubuntu` / `just test`
-
-> 🟡 限定的な副作用 (Docker コンテナを起動)
-
-**いつ使う?**
-- `bootstrap.sh` や run_once スクリプトを編集した直後、壊れていないか確認したいとき
-- 別の OS で動作することを CI 的に検証したいとき
-
-**何が起きる?**
-- Docker でクリーンな Arch / Ubuntu コンテナを起動
-- リポジトリを read-only でマウント
-- 内部で `./bootstrap.sh` を実行
-- パッケージインストールから設定配置まで全工程が通るか確認
-
-**前提**
-- Docker Desktop / Docker Engine がインストール済みであること
-
-**例**
-
-```bash
-just test-arch     # Arch だけ
-just test-ubuntu   # Ubuntu だけ
-just test          # 両方 (CI 用)
 ```
 
 ---
@@ -402,10 +387,10 @@ git -C ~/dotfiles diff Brewfile   # 何が変わったか確認
 > 🟢 副作用なし
 
 **いつ使う?**
-- `bootstrap.sh` や `scripts/doctor.sh` を編集した後
+- `scripts/doctor.sh` を編集した後
 
 **何が起きる?**
-- shellcheck で `bootstrap.sh` と `scripts/doctor.sh` を静的解析
+- shellcheck で `scripts/doctor.sh` を静的解析
 - `.tmpl` ファイルは chezmoi 処理が必要なので対象外
 
 **前提**
@@ -503,7 +488,8 @@ chezmoi forget ~/.gitconfig
 
 | 状況 | コマンド |
 |---|---|
-| 新規マシンに導入したい | `./bootstrap.sh` |
+| 新規マシンに導入したい (mac/Ubuntu/WSL) | `sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply reisuta` |
+| 新規マシンに導入したい (Arch) | `sudo pacman -S just git chezmoi && git clone <repo> ~/dotfiles && cd ~/dotfiles && just install` |
 | 設定変更を確認したい | `chezmoi diff` |
 | ホーム側を最新化したい | `chezmoi apply -v` |
 | リモートの変更を取り込みたい | `chezmoi update -v` |
@@ -513,7 +499,6 @@ chezmoi forget ~/.gitconfig
 | Neovim プラグインを更新したい | `just plugins-update` |
 | ホーム既存ファイルを管理下に追加 | `chezmoi add ~/.foo` |
 | パッケージリスト変更後、再インストール | `chezmoi state delete-bucket --bucket=scriptState && chezmoi apply -v` |
-| 別 OS で壊れていないか試したい | `just test-arch` / `just test-ubuntu` |
 | brew で入れたツールを Brewfile に反映 | `just brewfile-dump` (macOS) |
 | 設定が壊れた、リセットしたい | `chezmoi diff` で確認 → `chezmoi apply --force` |
 
@@ -522,21 +507,18 @@ chezmoi forget ~/.gitconfig
 ## ツール棲み分け
 
 ```
-┌─ bootstrap.sh ─────────────────────────────────────────────┐
-│ 唯一の素のシェルスクリプト。                                  │
-│ just / chezmoi が未インストールな環境専用のブートストラップ。 │
-└─────────────────────────────────────────────────────────────┘
-                           ↓ 役目を引き継ぐ
 ┌─ chezmoi ──────────────────────────────────────────────────┐
-│ 設定ファイルの配置 (symlink モード)、OS 別テンプレ分岐、       │
-│ 初回パッケージインストール、シェル変更を担当。                 │
+│ 唯一のセットアップ／運用ツール。                              │
+│   sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply reisuta
+│ 1コマンドで chezmoi 自身のダウンロード + リポジトリ clone +    │
+│ パッケージインストール + 設定配置 + シェル切替まで完了。       │
 │ 日常コマンド: chezmoi diff / apply / update / edit          │
 └─────────────────────────────────────────────────────────────┘
                            ↑ 一部のメタタスクで使う
 ┌─ just ─────────────────────────────────────────────────────┐
 │ chezmoi の単純ラッパーは含めない。代わりに以下を担当:           │
+│   - just install      : 初回セットアップ (Arch で便利)         │
 │   - just doctor       : 環境健全性チェック                   │
-│   - just test-arch    : Arch コンテナで bootstrap 検証       │
 │   - just lint         : シェルスクリプト品質チェック          │
 │   - just plugins-update: Neovim プラグイン同期               │
 │   - just brewfile-dump: 現環境から Brewfile 再生成 (macOS)   │
@@ -551,7 +533,6 @@ chezmoi forget ~/.gitconfig
 ```
 ~/dotfiles/
 ├── README.md                     ← このファイル
-├── bootstrap.sh                  ← 唯一のブートストラップ用シェル
 ├── justfile                      ← 非ラッパー系タスク集
 ├── .chezmoi.toml.tmpl            ← chezmoi 自身の設定 (symlink モード等)
 ├── .chezmoiignore.tmpl           ← OS 別の除外ルール
@@ -559,15 +540,15 @@ chezmoi forget ~/.gitconfig
 ├── Brewfile                      ← macOS パッケージリスト
 ├── archpkgs.txt                  ← Arch ベースパッケージ
 ├── archpkgs-gui.txt              ← Arch GUI (WSL では除外)
-├── aptpkgs.txt                   ← Ubuntu/Debian ベースパッケージ (WSL Ubuntu 用)
+├── aptpkgs.txt                   ← Ubuntu/Debian ベースパッケージ
 │
 ├── dot_zshrc                     → ~/.zshrc
 ├── dot_tmux.conf                 → ~/.tmux.conf
-├── dot_p10k.zsh                  → ~/.p10k.zsh
 ├── dot_config/
 │   ├── nvim/                     → ~/.config/nvim/
 │   ├── kitty/                    → ~/.config/kitty/    (Linux ネイティブのみ)
 │   ├── wezterm/                  → ~/.config/wezterm/  (macOS のみ)
+│   ├── starship.toml             → ~/.config/starship.toml (Starship プロンプト)
 │   └── redshift.conf             → ~/.config/redshift.conf (Linux ネイティブのみ)
 ├── private_dot_local/bin/
 │   ├── executable_win-clip-copy.sh     → ~/.local/bin/win-clip-copy.sh (WSL のみ)
@@ -577,11 +558,8 @@ chezmoi forget ~/.gitconfig
 ├── run_once_before_install-packages.sh.tmpl  ← chezmoi が apply 前に1度だけ実行
 ├── run_once_after_change-shell.sh.tmpl        ← chezmoi が apply 後に1度だけ実行
 │
-├── scripts/
-│   └── doctor.sh                 ← `just doctor` の実体
-│
-└── old/                          ← 退役済みファイル (削除せず保管)
-    └── README.md                 ← 中身の説明
+└── scripts/
+    └── doctor.sh                 ← `just doctor` の実体
 ```
 
 ---

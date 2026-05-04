@@ -22,6 +22,9 @@ brew "starship"
 # バージョン管理 (zshrc で `mise activate zsh` 使用)
 brew "mise"
 
+# タスクランナー (justfile を実行)
+brew "just"
+
 # GitHub CLI
 brew "gh"
 

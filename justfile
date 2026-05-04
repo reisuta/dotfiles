@@ -13,42 +13,19 @@ set dotenv-load := false
 default:
     @just --list --unsorted
 
-# 新規環境の初期セットアップ (clone 直後の1コマンド)
+# 初回セットアップ (chezmoi が無ければ取得し、このリポジトリを source として init --apply)
 install:
-    ./bootstrap.sh
+    @command -v chezmoi >/dev/null 2>&1 || sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+    PATH="$HOME/.local/bin:$PATH" chezmoi init --source={{ justfile_directory() }} --apply
 
 # 環境ヘルスチェック (副作用なし)
 doctor:
     @bash {{ justfile_directory() }}/scripts/doctor.sh
 
-# Arch Linux コンテナで bootstrap が壊れていないか検証
-test-arch:
-    docker run --rm -it \
-        -v "{{ justfile_directory() }}:/dotfiles:ro" \
-        archlinux:latest bash -c \
-        "pacman -Sy --noconfirm git sudo zsh && \
-         cp -r /dotfiles /root/dotfiles && \
-         cd /root/dotfiles && \
-         ./bootstrap.sh"
-
-# Ubuntu コンテナで bootstrap が壊れていないか検証
-test-ubuntu:
-    docker run --rm -it \
-        -v "{{ justfile_directory() }}:/dotfiles:ro" \
-        ubuntu:latest bash -c \
-        "apt update && \
-         apt install -y git curl sudo zsh && \
-         cp -r /dotfiles /root/dotfiles && \
-         cd /root/dotfiles && \
-         ./bootstrap.sh"
-
-# 全 OS でテスト (CI 用)
-test: test-arch test-ubuntu
-
 # シェルスクリプトの静的解析
 lint:
     @command -v shellcheck >/dev/null || { echo "shellcheck がインストールされていません"; exit 1; }
-    shellcheck bootstrap.sh scripts/doctor.sh
+    shellcheck scripts/doctor.sh
     @echo "==> .tmpl は chezmoi が処理する形式なので shellcheck 対象外"
 
 # Neovim プラグインを最新化 (lazy.nvim sync)

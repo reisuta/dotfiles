@@ -19,6 +19,9 @@ atuin
 # バージョン管理
 mise
 
+# タスクランナー (justfile を実行)
+just
+
 # GitHub CLI
 github-cli
 
