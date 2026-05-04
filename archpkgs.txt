@@ -22,6 +22,9 @@ mise
 # GitHub CLI
 github-cli
 
+# ステータススクリプト類で使用
+python
+
 # Powerlevel10k (Arch には公式パッケージがある)
 zsh-theme-powerlevel10k
 

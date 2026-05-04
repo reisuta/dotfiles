@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""tmux ステータスバーに Claude Code エージェントの最優先状態を 1 ブロックで表示する。
+
+優先度:
+    waiting (黄背景) > working (シアン背景) > idle (非表示)
+
+設計上の意図:
+    - 全状態を並列表示すると視覚ノイズが増えるので、最も urgent な状態のみ強調
+    - 配色は dot_tmux.conf 既存パレットに統一
+    - idle しか居ない時は status-right を空けて他の情報 (時刻等) を邪魔しない
+
+dot_tmux.conf 側:
+    set -g status-right "#($HOME/.local/bin/tmux-claude-status)..."
+"""
+from __future__ import annotations
+
+import subprocess
+import sys
+from collections import Counter
+from dataclasses import dataclass
+
+CLAUDE_COMMS = {"claude", ".claude-wrapped"}
+ACTIVE_CPU_THRESHOLD = 5.0       # CPU(%) 以上で working 判定
+PROMPT_TAIL_LINES = 8            # pane 末尾何行を覗いて prompt 検出するか
+PROMPT_KEYWORDS = ("Allow", "Deny")
+
+# dot_tmux.conf の既存パレットに合わせた配色
+STYLE_WAITING = "fg=#191726,bg=#e9c46a,bold"   # 黄背景・濃文字: 即座に気付かせる
+STYLE_WORKING = "fg=#cdcbe0,bg=#569fba,bold"   # シアン背景・薄文字: 情報通知レベル
+
+
+@dataclass(frozen=True)
+class Pane:
+    pane_id: str
+    pid: int
+
+
+@dataclass(frozen=True)
+class ProcInfo:
+    pid: int
+    ppid: int
+    cpu: float
+    comm: str
+
+
+def sh(*argv: str) -> str:
+    """サブプロセスを起動して stdout を返す。失敗時は空文字。"""
+    try:
+        out = subprocess.run(
+            argv, capture_output=True, text=True, check=False, timeout=2.0
+        )
+        return out.stdout
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return ""
+
+
+def list_panes() -> list[Pane]:
+    raw = sh("tmux", "list-panes", "-a", "-F", "#{pane_id}\t#{pane_pid}")
+    panes: list[Pane] = []
+    for line in raw.strip().splitlines():
+        try:
+            pane_id, pid = line.split("\t", 1)
+            panes.append(Pane(pane_id=pane_id, pid=int(pid)))
+        except ValueError:
+            continue
+    return panes
+
+
+def index_processes_by_ppid() -> dict[int, list[ProcInfo]]:
+    """ps を 1 度だけ呼び ppid をキーに辞書化。pane ごとに ps を呼ばないため軽量。"""
+    raw = sh("ps", "-eo", "pid=,ppid=,%cpu=,comm=")
+    table: dict[int, list[ProcInfo]] = {}
+    for line in raw.splitlines():
+        parts = line.split(None, 3)
+        if len(parts) < 4:
+            continue
+        try:
+            proc = ProcInfo(
+                pid=int(parts[0]), ppid=int(parts[1]),
+                cpu=float(parts[2]), comm=parts[3],
+            )
+        except ValueError:
+            continue
+        table.setdefault(proc.ppid, []).append(proc)
+    return table
+
+
+def find_claude(pane: Pane, ppid_index: dict[int, list[ProcInfo]]) -> ProcInfo | None:
+    for child in ppid_index.get(pane.pid, []):
+        if child.comm in CLAUDE_COMMS:
+            return child
+    return None
+
+
+def waiting_for_user(pane: Pane) -> bool:
+    """pane の末尾に Allow/Deny プロンプトが見えているか。"""
+    capture = sh("tmux", "capture-pane", "-p", "-t", pane.pane_id)
+    tail = capture.splitlines()[-PROMPT_TAIL_LINES:]
+    return any(line.lstrip().startswith(PROMPT_KEYWORDS) for line in tail)
+
+
+def classify(pane: Pane, claude: ProcInfo) -> str:
+    if waiting_for_user(pane):
+        return "waiting"
+    return "working" if claude.cpu > ACTIVE_CPU_THRESHOLD else "idle"
+
+
+def render(counts: Counter[str]) -> str:
+    """最優先 1 状態のみ 1 ブロックで描画。idle のみの時は空文字。"""
+    if counts["waiting"]:
+        return f"#[{STYLE_WAITING}] cc ⏸{counts['waiting']} #[default]"
+    if counts["working"]:
+        return f"#[{STYLE_WORKING}] cc ▶{counts['working']} #[default]"
+    return ""
+
+
+def main() -> int:
+    panes = list_panes()
+    if not panes:
+        return 0
+
+    ppid_index = index_processes_by_ppid()
+    counts: Counter[str] = Counter()
+    for pane in panes:
+        claude = find_claude(pane, ppid_index)
+        if claude is None:
+            continue
+        counts[classify(pane, claude)] += 1
+
+    output = render(counts)
+    if output:
+        sys.stdout.write(output)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

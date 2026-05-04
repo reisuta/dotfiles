@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Claude Code statusLine indicator.
+
+stdin から Claude Code の statusLine JSON を受け取り、
+モデル名・コンテキスト使用率・トークン消費量を 1 行で返す。
+
+~/.claude/settings.json:
+    {
+      "statusLine": {
+        "type": "command",
+        "command": "$HOME/.local/bin/claude-code-status"
+      }
+    }
+"""
+from __future__ import annotations
+
+import json
+import sys
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Usage:
+    model: str
+    used_tokens: int
+    window_size: int
+    used_pct: float
+
+    @property
+    def threshold_marker(self) -> str:
+        if self.used_pct >= 80:
+            return "▲"   # 危険域
+        if self.used_pct >= 50:
+            return "●"   # 注意域
+        return "·"       # 余裕
+
+
+def parse(payload: dict) -> Usage | None:
+    model = payload.get("model", {}).get("display_name") or "?"
+    ctx = payload.get("context_window") or {}
+    pct = ctx.get("used_percentage")
+    win = ctx.get("context_window_size")
+    if pct is None or win is None:
+        # context_window 情報が無い段階 (起動直後など) はモデル名のみ
+        return Usage(model=model, used_tokens=0, window_size=0, used_pct=-1.0)
+
+    cu = ctx.get("current_usage") or {}
+    used = sum(
+        int(cu.get(k, 0) or 0)
+        for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
+    )
+    return Usage(model=model, used_tokens=used, window_size=int(win), used_pct=float(pct))
+
+
+def render(u: Usage) -> str:
+    if u.used_pct < 0:
+        return u.model
+    return (
+        f"{u.threshold_marker} {u.model} "
+        f"{u.used_pct:.0f}% "
+        f"[{u.used_tokens:,}/{u.window_size:,}]"
+    )
+
+
+def main() -> int:
+    try:
+        payload = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        return 0  # 不正入力時は無音で抜ける (statusLine を壊さない)
+
+    usage = parse(payload)
+    if usage is None:
+        return 0
+    print(render(usage))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
