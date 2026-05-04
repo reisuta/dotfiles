@@ -70,11 +70,10 @@ fi
 
 [ -d "$HOME/.oh-my-zsh" ] && ok "oh-my-zsh installed" || fail "oh-my-zsh missing"
 
-P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
-if [ -d "$P10K_DIR" ] || command -v powerlevel10k >/dev/null 2>&1; then
-    ok "powerlevel10k installed"
+if command -v starship >/dev/null 2>&1; then
+    ok "starship installed: $(command -v starship)"
 else
-    fail "powerlevel10k missing ($P10K_DIR)"
+    fail "starship missing"
 fi
 
 # ----------------------------------------------------------------

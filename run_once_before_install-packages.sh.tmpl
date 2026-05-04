@@ -89,6 +89,12 @@ if ! command -v starship >/dev/null 2>&1; then
     curl -sS https://starship.rs/install.sh | sh -s -- --yes
 fi
 
+if ! command -v just >/dev/null 2>&1; then
+    echo "==> Installing just"
+    curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh \
+        | bash -s -- --to "$HOME/.local/bin"
+fi
+
 {{   else -}}
 echo "未対応のディストリビューション: {{ $distroId }}"
 exit 1
