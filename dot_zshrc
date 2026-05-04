@@ -172,5 +172,8 @@ goo() {
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 export PATH="$HOME/.local/bin:$PATH"
 
+# ホスト固有・非公開の設定
+[ -f ~/.zshrc.local ] && source ~/.zshrc.local
+
 ## windows cmdプロンプトのプロンプトを変える方法
 # setx PROMPT "⚡reisuta: "
