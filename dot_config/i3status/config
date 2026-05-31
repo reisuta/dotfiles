@@ -1,0 +1,60 @@
+general {
+        colors = true
+        interval = 2
+        color_good     = "#a6e3a1"
+        color_degraded = "#f9e2af"
+        color_bad      = "#f38ba8"
+}
+
+order += "wireless _first_"
+order += "cpu_usage"
+order += "memory"
+order += "battery all"
+order += "volume master"
+order += "tztime date"
+order += "tztime time"
+
+wireless _first_ {
+        format_up   = " %essid (%quality)"
+        format_down = " down"
+}
+
+cpu_usage {
+        format = "CPU %usage"
+        max_threshold = 80
+        degraded_threshold = 50
+}
+
+memory {
+        format = "MEM %used / %total"
+        unit = "G"
+        decimals = 1
+        threshold_degraded = "2G"
+        threshold_critical = "500M"
+        format_degraded = "MEM %used / %total"
+}
+
+battery all {
+        format = "%status %percentage %remaining"
+        status_chr  = "CHR"
+        status_bat  = "BAT"
+        status_full = "FULL"
+        low_threshold = 15
+        threshold_type = percentage
+        integer_battery_capacity = true
+}
+
+volume master {
+        format = "Vol %volume"
+        format_muted = "Vol Muted"
+        device = "pulse"
+}
+
+tztime date {
+        format = " %m/%d (%a) "
+        locale = "ja_JP.UTF-8"
+}
+
+tztime time {
+        format = " %H:%M "
+}

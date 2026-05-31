@@ -1,0 +1,18 @@
+configuration {
+    modi: "drun,window,calc,clipboard:greenclip print";
+    show-icons: true;
+    icon-theme: "Papirus";
+    drun-display-format: "{name}";
+    display-drun: " Apps";
+    display-window: " Window";
+    display-calc: " Calc";
+    display-clipboard: " Clip";
+    sidebar-mode: true;
+    terminal: "kitty";
+    matching: "fuzzy";
+    sort: true;
+    location: 0;
+    font: "monospace 12";
+}
+
+@theme "catppuccin-mocha"
