@@ -6,6 +6,7 @@
 #   Brewfile:        {{ include "Brewfile" | sha256sum }}
 #   archpkgs.txt:    {{ include "archpkgs.txt" | sha256sum }}
 #   archpkgs-gui:    {{ include "archpkgs-gui.txt" | sha256sum }}
+#   archpkgs-aur:    {{ include "archpkgs-aur.txt" | sha256sum }}
 #   aptpkgs.txt:     {{ include "aptpkgs.txt" | sha256sum }}
 
 set -euo pipefail
@@ -48,6 +49,17 @@ sudo pacman -S --needed --noconfirm "${PKGS[@]}"
 # GUI パッケージ (WSL Arch では Windows 側ターミナルを使うので除外)
 mapfile -t GUI_PKGS < <(grep -v '^#' "$DOTFILES/archpkgs-gui.txt" | grep -v '^$')
 sudo pacman -S --needed --noconfirm "${GUI_PKGS[@]}"
+
+# AUR パッケージ (yay 経由)
+if ! command -v yay >/dev/null 2>&1; then
+    echo "==> yay が未導入。AUR から bootstrap"
+    tmpdir=$(mktemp -d)
+    git clone https://aur.archlinux.org/yay.git "$tmpdir/yay"
+    (cd "$tmpdir/yay" && makepkg -si --noconfirm)
+    rm -rf "$tmpdir"
+fi
+mapfile -t AUR_PKGS < <(grep -v '^#' "$DOTFILES/archpkgs-aur.txt" | grep -v '^$')
+yay -S --needed --noconfirm "${AUR_PKGS[@]}"
 {{     end -}}
 
 {{   else if or (eq $distroId "ubuntu") (eq $distroId "debian") -}}

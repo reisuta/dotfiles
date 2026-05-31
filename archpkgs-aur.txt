@@ -1,0 +1,11 @@
+# Arch Linux (native のみ) AUR パッケージ
+# 公式リポジトリにないものを yay 経由で導入する。
+# WSL Arch では除外される (GUI 用途のため)。
+#
+# 注意: AUR は審査なし。新規追加時は PKGBUILD に目を通すこと。
+
+# rofi 拡張: 電卓モード (qalc バックエンド)
+rofi-calc
+
+# rofi 拡張: クリップボード履歴 (greenclip も同パッケージで入る)
+rofi-greenclip

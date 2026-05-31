@@ -7,6 +7,12 @@ zsh
 tmux
 neovim
 
+# ビルド基盤 (AUR / makepkg / 一部 native ビルド用)
+base-devel
+
+# ネットワーク基本
+curl
+
 # CLI ユーティリティ
 fzf
 ripgrep

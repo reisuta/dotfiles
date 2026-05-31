@@ -18,6 +18,7 @@ scripts
 Brewfile
 archpkgs.txt
 archpkgs-gui.txt
+archpkgs-aur.txt
 aptpkgs.txt
 aptpkgs-gui.txt
 .gitattributes
@@ -27,28 +28,43 @@ aptpkgs-gui.txt
 # ============================================================
 
 {{ if eq .chezmoi.os "darwin" -}}
-# macOS: kitty / redshift / win-clip-copy.sh は不要
+# macOS: kitty / redshift / win-clip-copy.sh / i3 系 WM 設定 / .xprofile は不要
 .config/kitty
 .config/redshift.conf
+.config/i3
+.config/i3status
+.config/rofi
+.config/fcitx5
 .local/bin/win-clip-copy.sh
+.xprofile
 {{ end -}}
 
 {{ if eq .chezmoi.os "linux" -}}
 {{- $isWsl := .chezmoi.kernel.osrelease | lower | contains "microsoft" -}}
 {{- $isArch := eq .chezmoi.osRelease.id "arch" -}}
 {{   if $isWsl -}}
-# WSL: ターミナル設定は Windows 側で管理
+# WSL: ターミナル設定は Windows 側で管理、WM/IME/.xprofile も不要
 .config/kitty
 .config/wezterm
 .config/redshift.conf
+.config/i3
+.config/i3status
+.config/rofi
+.config/fcitx5
+.xprofile
 {{   else if $isArch -}}
-# Arch native: kitty を使う
+# Arch native: kitty / i3 / rofi / fcitx5 / .xprofile を使う
 .config/wezterm
 .local/bin/win-clip-copy.sh
 {{   else -}}
-# その他 Linux: kitty をデフォルト採用
+# その他 Linux: kitty をデフォルト採用、i3 系・.xprofile は Arch 専用なので除外
 .config/wezterm
+.config/i3
+.config/i3status
+.config/rofi
+.config/fcitx5
 .local/bin/win-clip-copy.sh
+.xprofile
 {{   end -}}
 {{ end -}}
 
@@ -57,5 +73,10 @@ aptpkgs-gui.txt
 .config/kitty
 .config/wezterm
 .config/redshift.conf
+.config/i3
+.config/i3status
+.config/rofi
+.config/fcitx5
 .local/bin/win-clip-copy.sh
+.xprofile
 {{ end -}}

@@ -173,7 +173,8 @@ goo() {
 # export PATH="/opt/homebrew/opt/postgresql@13/bin:$PATH"
 
 # Starship プロンプト初期化 (oh-my-zsh の後)
-eval "$(starship init zsh)"
+# 未インストール環境でシェルが壊れないようにガード
+command -v starship >/dev/null && eval "$(starship init zsh)"
 export PATH="$HOME/.local/bin:$PATH"
 
 # ホスト固有・非公開の設定
