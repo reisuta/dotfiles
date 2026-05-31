@@ -182,3 +182,13 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ## windows cmdプロンプトのプロンプトを変える方法
 # setx PROMPT "⚡reisuta: "
+#
+# mise (PATH 解決前の zoxide 等とは別に末尾で activate)
+command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
+
+# Go でインストールしたコマンド (go install / make install) を使えるように
+export PATH="$HOME/go/bin:$PATH"
+
+autoload -Uz add-zsh-hook
+_worklog_set_title() { print -Pn "\e]2;%~\a" }
+add-zsh-hook precmd _worklog_set_title
