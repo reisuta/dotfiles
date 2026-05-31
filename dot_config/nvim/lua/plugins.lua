@@ -26,10 +26,12 @@ require('lazy').setup {
       -- ハイライトはパーサーインストール後に Neovim が自動で有効化する
       require("nvim-treesitter.install").install({
         "c", "lua", "vim", "vimdoc", "ruby", "python",
-        "typescript", "tsx", "javascript", "html", "css", "vue"
+        "typescript", "tsx", "javascript", "html", "css", "vue",
+        "rescript"
       })
     end,
   },
+  {'rescript-lang/vim-rescript'},
   {'lewis6991/gitsigns.nvim',
     config = function()
       require('settings/gitsigns')

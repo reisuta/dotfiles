@@ -3,7 +3,7 @@
 パスは target 側 (ホーム起点) で指定すること。
 
 ターミナル方針:
-  - macOS       : WezTerm
+  - macOS       : kitty
   - Arch native : kitty
   - WSL         : Windows 側の WezTerm を使うので Linux 側には不要
   - Other Linux : kitty (フォールバック)
@@ -28,8 +28,7 @@ aptpkgs-gui.txt
 # ============================================================
 
 {{ if eq .chezmoi.os "darwin" -}}
-# macOS: kitty / redshift / win-clip-copy.sh / i3 系 WM 設定 / .xprofile は不要
-.config/kitty
+# macOS: redshift / win-clip-copy.sh / i3 系 WM 設定 / .xprofile は不要
 .config/redshift.conf
 .config/i3
 .config/i3status
