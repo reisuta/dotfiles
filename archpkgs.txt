@@ -32,4 +32,4 @@ python
 starship
 
 # Nerd Font (kitty で使用)
-ttf-monaspace-nerd
+otf-monaspace-nerd

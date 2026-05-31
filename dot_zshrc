@@ -120,6 +120,14 @@ alias sp='rspec'
 alias ru='rubocop'
 alias reverse_nvim='mv ~/.config/nvim/init.vim ~/.config/nvim/_init.vim &&  mv ~/.config/nvim/_init.lua ~/.config/nvim/init.lua'
 alias reverse_lua='mv ~/.config/nvim/_init.vim ~/.config/nvim/init.vim &&  mv ~/.config/nvim/init.lua ~/.config/nvim/_init.lua'
+alias caps='setxkbmap -option ctrl:nocaps'
+
+# 音声出力切替 (PipeWire/PulseAudio)
+# pactl: PulseAudioサーバを操作するCLI (PipeWireもPulseAudio互換APIを提供)
+# set-card-profile <カード名> <プロファイル>: サウンドカードの出力経路を切り替える
+#   - alsa_card.pci-0000_00_1f.3 : 内蔵オーディオデバイス (PCIアドレスから命名)
+alias spk-hdmi='pactl set-card-profile alsa_card.pci-0000_00_1f.3 output:hdmi-stereo+input:analog-stereo'
+alias spk-int='pactl set-card-profile alsa_card.pci-0000_00_1f.3 output:analog-stereo+input:analog-stereo'
 
 if [ $SHLVL = 1 ]; then
   tmux
