@@ -1,0 +1,39 @@
+#!/bin/bash
+# ufw を有効化する。native Arch (非 WSL) のみ。
+# chezmoi が apply 後に1度だけ実行する (このスクリプト本体が変わると再実行される)。
+#   - inbound は既定で拒否、outbound は許可
+#   - tailscale0 経由の inbound のみ許可
+# ufw 本体のインストールは archpkgs-gui.txt 経由 (run_once_before)。
+# WSL ではカーネルがファイアウォールを持たないため何もしない。
+
+set -euo pipefail
+
+{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "arch") (not (.chezmoi.kernel.osrelease | lower | contains "microsoft")) -}}
+
+if ! command -v ufw >/dev/null 2>&1; then
+    echo "ufw が見つからないためファイアウォール設定をスキップします"
+    exit 0
+fi
+
+echo "==> ファイアウォール (ufw) を設定"
+
+# 既定ポリシー
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# tailscale0 経由の inbound のみ許可。
+# インターフェースが未作成でもルールは登録され、起動時に適用される。
+sudo ufw allow in on tailscale0 comment 'vpn'
+
+# 有効化 (既に有効でも冪等)
+sudo ufw --force enable
+
+# 起動時自動有効化
+sudo systemctl enable ufw.service
+
+echo "==> ufw 設定完了"
+sudo ufw status verbose
+
+{{ else -}}
+echo "native Arch ではないためファイアウォール設定をスキップします"
+{{ end -}}

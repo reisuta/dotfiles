@@ -128,6 +128,37 @@ if command -v nvim >/dev/null 2>&1; then
 fi
 
 # ----------------------------------------------------------------
+# セキュリティ (native Arch のみ: WSL はカーネルにファイアウォールを持たない)
+if [ "$OS" = "linux" ] && [ "$IS_WSL" = "0" ] && [ "$DISTRO" = "arch" ]; then
+    section "セキュリティ"
+
+    if command -v ufw >/dev/null 2>&1; then
+        # ufw の真の状態は /etc/ufw/ufw.conf の ENABLED フラグ (world-readable, sudo 不要)。
+        # systemctl is-active は oneshot 仕様で ENABLED=no でも active を返すため信用しない。
+        if grep -qi '^ENABLED=yes' /etc/ufw/ufw.conf 2>/dev/null; then
+            ok "ufw active"
+        else
+            warn "ufw インストール済みだが無効 (sudo ufw enable / 詳細は run_once_after_security-hardening.sh)"
+        fi
+    else
+        fail "ufw not installed (ファイアウォール無し)"
+    fi
+
+    # X11 か Wayland か (Wayland を推奨)
+    if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+        ok "display server: Wayland"
+    else
+        warn "display server: ${XDG_SESSION_TYPE:-unknown}"
+    fi
+
+    if command -v brave-clean >/dev/null 2>&1; then
+        ok "brave-clean launcher present"
+    else
+        warn "brave-clean launcher 未配置"
+    fi
+fi
+
+# ----------------------------------------------------------------
 section "chezmoi"
 
 if command -v chezmoi >/dev/null 2>&1; then

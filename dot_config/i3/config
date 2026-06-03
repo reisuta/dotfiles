@@ -10,7 +10,7 @@ exec --no-startup-id autorandr --change
 exec --no-startup-id fcitx5 -d
 # fcitx5 起動時に layout を上書きされるため exec_always で再適用
 exec_always --no-startup-id setxkbmap -option ctrl:nocaps
-exec --no-startup-id redshift -c ~/.config/redshift/redshift.conf
+exec --no-startup-id redshift -c ~/.config/redshift.conf
 # OBS の Xcomposite ウィンドウキャプチャに必要
 exec --no-startup-id picom -b
 # rofi clipboard history のバックエンド
@@ -40,6 +40,9 @@ bindsym $mod+shift+d exec --no-startup-id rofi -show run
 bindsym Mod1+Tab exec --no-startup-id rofi -show window
 bindsym $mod+c exec --no-startup-id rofi -show calc -no-show-match -no-sort
 bindsym $mod+shift+v exec --no-startup-id rofi -show clipboard -run-command '{cmd}'
+
+# Brave (専用プロファイル: 拡張無効 / Cookie 分離 / 同期なし)
+bindsym $mod+shift+b exec --no-startup-id brave-clean
 
 # Focus
 bindsym $mod+j focus left

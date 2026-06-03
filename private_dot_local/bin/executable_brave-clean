@@ -1,0 +1,19 @@
+#!/bin/bash
+# 独立プロファイルで Brave を起動する。
+# 普段使いと Cookie / 拡張 / 同期を分離するための専用プロファイル。
+#   --user-data-dir       : 独立したプロファイルツリー (Cookie 共有なし)
+#   --disable-extensions  : 拡張を無効化
+#   --no-first-run / --no-default-browser-check : 初回・既定確認をスキップ
+#
+# 起動: `brave-clean` または $mod+Shift+b
+
+set -euo pipefail
+
+PROFILE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/brave-clean"
+
+exec brave \
+    --user-data-dir="$PROFILE_DIR" \
+    --no-first-run \
+    --no-default-browser-check \
+    --disable-extensions \
+    "$@"
