@@ -121,6 +121,9 @@ alias ru='rubocop'
 alias reverse_nvim='mv ~/.config/nvim/init.vim ~/.config/nvim/_init.vim &&  mv ~/.config/nvim/_init.lua ~/.config/nvim/init.lua'
 alias reverse_lua='mv ~/.config/nvim/_init.vim ~/.config/nvim/init.vim &&  mv ~/.config/nvim/init.lua ~/.config/nvim/_init.lua'
 alias caps='setxkbmap -option ctrl:nocaps'
+# X11 の入力分離の弱さを実演する診断用 (全クライアントのキー入力を盗聴可能=keylogger 相当)。
+# Wayland(sway) では同じ手法が通用しない (ネイティブアプリの入力は分離される) ことの確認に使う。
+alias x11-keylog-test='DISPLAY=:0 xinput test-xi2 --root'
 
 # 音声出力切替 (PipeWire/PulseAudio)
 # pactl: PulseAudioサーバを操作するCLI (PipeWireもPulseAudio互換APIを提供)
@@ -128,6 +131,20 @@ alias caps='setxkbmap -option ctrl:nocaps'
 #   - alsa_card.pci-0000_00_1f.3 : 内蔵オーディオデバイス (PCIアドレスから命名)
 alias spk-hdmi='pactl set-card-profile alsa_card.pci-0000_00_1f.3 output:hdmi-stereo+input:analog-stereo'
 alias spk-int='pactl set-card-profile alsa_card.pci-0000_00_1f.3 output:analog-stereo+input:analog-stereo'
+
+# macOS の `open` 相当 (Linux 限定。macOS は native の open を使う)。
+#   open .        → yazi でカレントを開く (ホバーで画像インラインプレビュー)
+#   open <dir>    → yazi でそのディレクトリ
+#   open <file>   → 既定アプリ (xdg-open)
+if [[ "$OSTYPE" == linux* ]]; then
+  open() {
+    if [ -d "${1:-.}" ]; then
+      yazi "${1:-.}"
+    else
+      xdg-open "$@" >/dev/null 2>&1
+    fi
+  }
+fi
 
 if [ $SHLVL = 1 ]; then
   tmux
