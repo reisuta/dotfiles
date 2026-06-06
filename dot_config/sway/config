@@ -1,0 +1,211 @@
+# Sway 設定 (i3 設定からの移行・基本構成)
+# i3 と並行運用するため dot_config/i3/config は残置。
+# 差分は「X11 専用ツール → Wayland ネイティブツールへの置換」が中心。
+#   picom        → 削除 (sway 内蔵コンポジタ)
+#   setxkbmap    → input { xkb_options }
+#   maim/slop    → grim/slurp (executable_sway-screenshot 経由)
+#   xclip        → wl-copy
+#   redshift     → gammastep
+#   greenclip    → cliphist
+#   xss-lock+i3lock → swayidle + swaylock
+#   autorandr    → output 設定 (下記)
+
+set $mod Mod4
+
+font pango:monospace 11
+
+# ============================================================
+# 入力 (旧 setxkbmap -option ctrl:nocaps 相当)
+# ============================================================
+input * {
+    xkb_options ctrl:nocaps
+}
+
+# ============================================================
+# 出力 (旧 autorandr/arandr 相当)
+# 出力名は `swaymsg -t get_outputs` で確認すること。
+# X11 の DP-2 / eDP-1 は Wayland では別名になる場合がある。
+# 必要になったら位置・解像度をここに追記する。
+# ============================================================
+# output eDP-1 position 0 0
+# output DP-2 position 1920 0
+
+# ============================================================
+# 自動起動
+# ============================================================
+# 環境変数を D-Bus / systemd ユーザセッションへ伝播 (fcitx5・スクリーンキャスト用)
+exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+# 日本語入力 (環境変数は ~/.config/environment.d/10-input-method.conf)
+# ※ 効かない場合は環境変数の伝播を要確認 (sway+fcitx5 は環境依存)
+exec fcitx5 -d -r
+# ネットワーク (トレイ常駐)
+exec nm-applet --indicator
+# 色温度 (旧 redshift)
+exec gammastep -c ~/.config/gammastep/config.ini
+# クリップボード履歴 (旧 greenclip)
+exec wl-paste --type text --watch cliphist store
+exec wl-paste --type image --watch cliphist store
+# .desktop の autostart
+exec dex --autostart --environment sway
+
+# アイドル/ロック (旧 xss-lock + i3lock)
+exec swayidle -w \
+    timeout 300 'swaylock -f' \
+    timeout 600 'swaymsg "output * power off"' resume 'swaymsg "output * power on"' \
+    before-sleep 'swaylock -f'
+
+# 手動ロック: Ctrl+Super+L (テーマは ~/.config/swaylock/config から読む)
+bindsym --to-code Control+Mod4+l exec swaylock
+
+# ============================================================
+# スクリーンショット (旧 maim/slop/xclip → grim/slurp/wl-copy)
+# 実体は executable_sway-screenshot (保存 + クリップボードへコピー)
+# ============================================================
+# --to-code: Shift で記号に化ける数字キーを物理キーコードで束縛する (sway の作法)
+# 絶対パス: sway セッションの PATH に ~/.local/bin が無いため ($HOME を sh が展開)
+bindsym --to-code Control+Shift+3 exec $HOME/.local/bin/sway-screenshot full
+bindsym --to-code Control+Shift+4 exec $HOME/.local/bin/sway-screenshot area
+bindsym --to-code Control+Shift+5 exec $HOME/.local/bin/sway-screenshot window
+
+# ============================================================
+# 音量 (pactl は PipeWire-pulse でそのまま動作)
+# ============================================================
+set $refresh_i3status killall -SIGUSR1 i3status
+bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +10% && $refresh_i3status
+bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -10% && $refresh_i3status
+bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_i3status
+bindsym XF86AudioMicMute exec pactl set-source-mute @DEFAULT_SOURCE@ toggle && $refresh_i3status
+
+floating_modifier $mod
+tiling_drag enable
+
+bindsym $mod+Return exec kitty
+bindsym $mod+Shift+q kill
+
+# Rofi (Xwayland 経由で動作。-show window は Xwayland のウィンドウのみ見える点に注意)
+bindsym $mod+d exec rofi -show drun
+bindsym $mod+shift+d exec rofi -show run
+bindsym Mod1+Tab exec rofi -show window
+bindsym $mod+c exec rofi -show calc -no-show-match -no-sort
+# クリップボード履歴 (旧 rofi -show clipboard → cliphist)
+bindsym $mod+shift+v exec sh -c 'cliphist list | rofi -dmenu | cliphist decode | wl-copy'
+
+# Brave (専用プロファイル: 拡張無効 / Cookie 分離 / 同期なし)
+bindsym $mod+shift+b exec $HOME/.local/bin/brave-clean
+
+# Focus
+bindsym $mod+j focus left
+bindsym $mod+k focus down
+bindsym $mod+l focus up
+bindsym $mod+semicolon focus right
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
+
+# Move window
+bindsym $mod+Shift+j move left
+bindsym $mod+Shift+k move down
+bindsym $mod+Shift+l move up
+bindsym $mod+Shift+semicolon move right
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Down move down
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Right move right
+
+# 現在のワークスペース / ウィンドウを他モニターへ
+bindsym $mod+m move workspace to output next
+bindsym $mod+Shift+m move container to output next
+
+# Split / Layout
+bindsym $mod+h split h
+bindsym $mod+v split v
+bindsym $mod+f fullscreen toggle
+bindsym $mod+s layout stacking
+bindsym $mod+w layout tabbed
+bindsym $mod+e layout toggle split
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+space focus mode_toggle
+bindsym $mod+a focus parent
+
+set $ws1 "1"
+set $ws2 "2"
+set $ws3 "3"
+set $ws4 "4"
+set $ws5 "5"
+set $ws6 "6"
+set $ws7 "7"
+set $ws8 "8"
+set $ws9 "9"
+set $ws10 "10"
+
+# ws1-7 = 外部大画面 / ws8-10 = ラップトップ。外部未接続時はフォールバック。
+# 出力名は `swaymsg -t get_outputs` で確認のこと (DP-2/eDP-1 は別名の可能性)。
+workspace $ws1 output DP-2 eDP-1
+workspace $ws2 output DP-2 eDP-1
+workspace $ws3 output DP-2 eDP-1
+workspace $ws4 output DP-2 eDP-1
+workspace $ws5 output DP-2 eDP-1
+workspace $ws6 output DP-2 eDP-1
+workspace $ws7 output DP-2 eDP-1
+workspace $ws8 output eDP-1 DP-2
+workspace $ws9 output eDP-1 DP-2
+workspace $ws10 output eDP-1 DP-2
+
+bindsym $mod+1 workspace number $ws1
+bindsym $mod+2 workspace number $ws2
+bindsym $mod+3 workspace number $ws3
+bindsym $mod+4 workspace number $ws4
+bindsym $mod+5 workspace number $ws5
+bindsym $mod+6 workspace number $ws6
+bindsym $mod+7 workspace number $ws7
+bindsym $mod+8 workspace number $ws8
+bindsym $mod+9 workspace number $ws9
+bindsym $mod+0 workspace number $ws10
+
+bindsym $mod+Shift+1 move container to workspace number $ws1
+bindsym $mod+Shift+2 move container to workspace number $ws2
+bindsym $mod+Shift+3 move container to workspace number $ws3
+bindsym $mod+Shift+4 move container to workspace number $ws4
+bindsym $mod+Shift+5 move container to workspace number $ws5
+bindsym $mod+Shift+6 move container to workspace number $ws6
+bindsym $mod+Shift+7 move container to workspace number $ws7
+bindsym $mod+Shift+8 move container to workspace number $ws8
+bindsym $mod+Shift+9 move container to workspace number $ws9
+bindsym $mod+Shift+0 move container to workspace number $ws10
+
+bindsym $mod+Shift+c reload
+# sway には in-place restart が無いため reload に割当
+bindsym $mod+Shift+r reload
+bindsym $mod+Shift+e exec swaynag -t warning -m 'Sway を終了しますか?' -B 'Yes, exit sway' 'swaymsg exit'
+
+# h/l = 幅、j/k = 高さ
+mode "resize" {
+        bindsym h resize shrink width 10 px or 10 ppt
+        bindsym j resize grow   height 10 px or 10 ppt
+        bindsym k resize shrink height 10 px or 10 ppt
+        bindsym l resize grow   width 10 px or 10 ppt
+        bindsym Left resize shrink width 10 px or 10 ppt
+        bindsym Down resize grow height 10 px or 10 ppt
+        bindsym Up resize shrink height 10 px or 10 ppt
+        bindsym Right resize grow width 10 px or 10 ppt
+        bindsym Return mode "default"
+        bindsym Escape mode "default"
+        bindsym $mod+r mode "default"
+}
+bindsym $mod+r mode "resize"
+
+bar {
+        status_command i3status
+        font pango:monospace 14
+        position bottom
+        colors {
+                background #1e1e2e
+                statusline #cdd6f4
+                separator  #585b70
+                focused_workspace  #89b4fa #89b4fa #1e1e2e
+                active_workspace   #585b70 #585b70 #cdd6f4
+                inactive_workspace #313244 #313244 #a6adc8
+                urgent_workspace   #f38ba8 #f38ba8 #1e1e2e
+        }
+}

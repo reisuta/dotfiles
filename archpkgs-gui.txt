@@ -21,6 +21,30 @@ i3status
 picom
 rofi
 
+# ============================================================
+# Wayland / sway (i3 と並行運用・feature/sway-migration)
+# ============================================================
+sway
+swaybg
+swaylock
+swayidle
+xorg-xwayland          # rofi 等 X11 アプリを sway 上で動かす
+grim                   # スクショ (旧 maim)
+slurp                  # 範囲選択 (旧 slop)
+wl-clipboard           # wl-copy/wl-paste (旧 xclip)
+cliphist               # クリップボード履歴 (旧 greenclip)
+gammastep              # 色温度 (旧 redshift)
+jq                     # sway-screenshot のウィンドウ座標取得
+
+# ============================================================
+# ファイラ / プレビュー (yazi)
+# `open .` → yazi (zshrc の open 関数)。kitty の画像プロトコルでインラインプレビュー。
+# ============================================================
+yazi
+ffmpegthumbnailer      # 動画サムネイル
+poppler                # PDF プレビュー
+imagemagick            # nvim snacks.image の magick CLI (画像インライン表示)
+
 # X11 ユーティリティ
 xclip
 xdotool

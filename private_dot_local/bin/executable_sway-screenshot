@@ -1,0 +1,35 @@
+#!/bin/bash
+# Wayland スクリーンショット: 保存 + クリップボードへコピー。
+# 旧 i3 の maim/slop/xclip 相当を grim/slurp/wl-copy で実装。
+#
+# 使い方: sway-screenshot [full|area|window]
+#   full   : 画面全体
+#   area   : 範囲をドラッグ選択
+#   window : フォーカス中ウィンドウ
+#
+# 依存: grim slurp wl-clipboard jq
+
+set -euo pipefail
+
+dir="$HOME/Pictures/screenshots"
+mkdir -p "$dir"
+f="$dir/$(date +%Y%m%d_%H%M%S).png"
+
+case "${1:-full}" in
+    full)
+        grim "$f"
+        ;;
+    area)
+        grim -g "$(slurp)" "$f"
+        ;;
+    window)
+        geo=$(swaymsg -t get_tree | jq -r '.. | select(.focused?) | .rect | "\(.x),\(.y) \(.width)x\(.height)"')
+        grim -g "$geo" "$f"
+        ;;
+    *)
+        echo "usage: sway-screenshot [full|area|window]" >&2
+        exit 1
+        ;;
+esac
+
+wl-copy < "$f"

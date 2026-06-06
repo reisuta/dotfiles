@@ -13,6 +13,14 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require('lazy').setup {
+  -- 画像をバッファ/markdown にインライン表示 (kitty 画像プロトコル + magick CLI)
+  {'folke/snacks.nvim',
+    priority = 1000,
+    lazy = false,
+    opts = {
+      image = { enabled = true },
+    },
+  },
   {'preservim/nerdtree'},
 	{'Xuyuanp/nerdtree-git-plugin'},
   {'ctrlpvim/ctrlp.vim'},
