@@ -1,0 +1,37 @@
+# swaylock — wine red theme
+# Read automatically by `swaylock` (manual bind + swayidle auto-lock).
+
+ignore-empty-password
+show-failed-attempts
+indicator-idle-visible
+indicator-caps-lock
+show-keyboard-layout
+indicator-radius=110
+indicator-thickness=12
+font=sans-serif
+font-size=28
+
+# Colors are rrggbb. Wine-red background with a gold indicator ring.
+color=5e1622
+inside-color=3f0e18
+ring-color=9acd32
+inside-clear-color=3f0e18
+ring-clear-color=f2d98d
+inside-ver-color=3f0e18
+ring-ver-color=c9a227
+inside-wrong-color=2a0810
+ring-wrong-color=ff5d5d
+inside-caps-lock-color=3f0e18
+ring-caps-lock-color=ffb347
+key-hl-color=ffd27f
+bs-hl-color=ff5d5d
+separator-color=5e1622
+text-color=f3e3d3
+text-clear-color=5e1622
+text-ver-color=5e1622
+text-wrong-color=ffd0d0
+text-caps-lock-color=ffb347
+layout-bg-color=3f0e18
+layout-text-color=f3e3d3
+layout-border-color=d4af6a
+line-uses-inside
