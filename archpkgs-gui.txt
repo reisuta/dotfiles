@@ -28,6 +28,7 @@ sway
 swaybg
 swaylock
 swayidle
+waybar                 # ステータスバー (wlr/taskbar で開いているアプリのアイコン表示)
 xorg-xwayland          # rofi 等 X11 アプリを sway 上で動かす
 grim                   # スクショ (旧 maim)
 slurp                  # 範囲選択 (旧 slop)

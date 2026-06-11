@@ -50,8 +50,8 @@ exec dex --autostart --environment sway
 
 # アイドル/ロック (旧 xss-lock + i3lock)
 exec swayidle -w \
-    timeout 300 'swaylock -f' \
-    timeout 600 'swaymsg "output * power off"' resume 'swaymsg "output * power on"' \
+    timeout 900 'swaylock -f' \
+    timeout 1800 'swaymsg "output * power off"' resume 'swaymsg "output * power on"' \
     before-sleep 'swaylock -f'
 
 # 手動ロック: Ctrl+Super+L (テーマは ~/.config/swaylock/config から読む)
@@ -79,8 +79,14 @@ bindsym XF86AudioMicMute exec pactl set-source-mute @DEFAULT_SOURCE@ toggle && $
 floating_modifier $mod
 tiling_drag enable
 
+# waybar のネットワーク詳細ポップアップ (waybar-netinfo) を中央フロート表示
+for_window [app_id="netinfo-popup"] floating enable, resize set 520 300, move position center
+
 bindsym $mod+Return exec kitty
 bindsym $mod+Shift+q kill
+
+# エクスプローラ (Windows の Win+E 相当)。ファイラ yazi を kitty で開く
+bindsym $mod+e exec kitty -e yazi
 
 # Rofi (Xwayland 経由で動作。-show window は Xwayland のウィンドウのみ見える点に注意)
 bindsym $mod+d exec rofi -show drun
@@ -123,7 +129,7 @@ bindsym $mod+v split v
 bindsym $mod+f fullscreen toggle
 bindsym $mod+s layout stacking
 bindsym $mod+w layout tabbed
-bindsym $mod+e layout toggle split
+bindsym $mod+t layout toggle split
 bindsym $mod+Shift+space floating toggle
 bindsym $mod+space focus mode_toggle
 bindsym $mod+a focus parent
@@ -195,17 +201,7 @@ mode "resize" {
 }
 bindsym $mod+r mode "resize"
 
+# バーは waybar (ネイティブ Wayland)。配色/モジュールは ~/.config/waybar/ で管理。
 bar {
-        status_command i3status
-        font pango:monospace 14
-        position bottom
-        colors {
-                background #1e1e2e
-                statusline #cdd6f4
-                separator  #585b70
-                focused_workspace  #89b4fa #89b4fa #1e1e2e
-                active_workspace   #585b70 #585b70 #cdd6f4
-                inactive_workspace #313244 #313244 #a6adc8
-                urgent_workspace   #f38ba8 #f38ba8 #1e1e2e
-        }
+        swaybar_command waybar
 }

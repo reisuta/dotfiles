@@ -146,6 +146,43 @@ if [[ "$OSTYPE" == linux* ]]; then
   }
 fi
 
+# プロセスをアプリ単位でメモリ集計 (Windowsのタスクマネージャ風の見方)。
+# Brave等はレンダラ毎にプロセスが分かれる (例: 32個) ため、素のhtopだと
+# バラバラに見えて実使用量が掴みづらい。comm(コマンド名)で合算して1行にまとめる。
+# 1024MB以上は自動でGB表示。引数で表示件数を指定 (既定15)。
+#
+#   psmem        → RSS集計・上位15 (sudo不要・速い・ざっくり)
+#   psmem 25     → 上位25
+#   psmem-pss    → PSS集計・上位15 (sudo必要・正確な"真の占有量")
+#
+# RSS = 共有メモリを各プロセスに重複加算するため、合算すると多めに出る (上限の目安)。
+# PSS = 共有分を按分するので合計が実RAM占有量に等しい = 最も正確。
+#   ただし ptrace_scope=1 で非rootは他プロセスのsmapsを読めないため sudo が要る。
+psmem() {
+  ps -eo rss,comm --no-headers \
+    | awk '{name=$2; for(i=3;i<=NF;i++) name=name" "$i; a[name]+=$1}
+           END{for(k in a) printf "%.0f\t%s\n", a[k]/1024, k}' \
+    | sort -rn | head -"${1:-15}" \
+    | awk -F'\t' '{ if($1>=1024) printf "%8.2f GB  %s\n", $1/1024, $2
+                    else         printf "%8.0f MB  %s\n", $1, $2 }'
+}
+
+psmem-pss() {
+  sudo sh -c '
+    for f in /proc/[0-9]*/smaps_rollup; do
+      pid=${f%/smaps_rollup}; pid=${pid#/proc/}
+      comm=$(tr -d "\n" < "/proc/$pid/comm" 2>/dev/null) || continue
+      [ -n "$comm" ] || continue
+      pss=$(awk "/^Pss:/{s+=\$2} END{print s+0}" "$f" 2>/dev/null)
+      printf "%s\t%s\n" "${pss:-0}" "$comm"
+    done
+  ' 2>/dev/null \
+    | awk -F'\t' '{a[$2]+=$1} END{for(k in a) printf "%.0f\t%s\n", a[k]/1024, k}' \
+    | sort -rn | head -"${1:-15}" \
+    | awk -F'\t' '{ if($1>=1024) printf "%8.2f GB  %s\n", $1/1024, $2
+                    else         printf "%8.0f MB  %s\n", $1, $2 }'
+}
+
 if [ $SHLVL = 1 ]; then
   tmux
 fi
