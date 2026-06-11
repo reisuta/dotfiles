@@ -1,0 +1,83 @@
+// Waybar config — swaybar/i3status から移行
+// 配置: 下部。左=ワークスペース/モード, 中央=タスクバー(開いているアプリのアイコン),
+//       右=wifi / CPU / メモリ / 音量 / バッテリー / 時計
+{
+    "layer": "top",
+    "position": "bottom",
+    "height": 46,
+    "spacing": 6,
+
+    "modules-left": ["sway/workspaces", "sway/mode"],
+    "modules-center": ["wlr/taskbar"],
+    "modules-right": ["network", "cpu", "memory", "pulseaudio", "battery", "tray", "clock"],
+
+    // ── 中央: 開いているウィンドウのアイコン (Windows のタスクバー相当) ──
+    "wlr/taskbar": {
+        "format": "{icon}",
+        "icon-size": 32,
+        "icon-theme": "Papirus-Dark",
+        "tooltip-format": "{title}",
+        "on-click": "activate",
+        "on-click-middle": "close",
+        "on-click-right": "minimize",
+        "all-outputs": true
+    },
+
+    "sway/workspaces": {
+        "disable-scroll": false,
+        "format": "{name}"
+    },
+
+    "sway/mode": {
+        "format": "<span style=\"italic\">{}</span>"
+    },
+
+    // ── 右側: i3status と同じ並び ──
+    // 画面収録対策: 普段はアイコンのみ。SSID 等の詳細はクリックで小窓表示。
+    "network": {
+        "format-wifi": "󰖩",
+        "format-ethernet": "󰈀",
+        "format-disconnected": "󰖪",
+        "tooltip": false,
+        "on-click": "$HOME/.local/bin/waybar-netinfo"
+    },
+
+    "cpu": {
+        "interval": 2,
+        "format": "CPU {usage}%"
+    },
+
+    "memory": {
+        "interval": 2,
+        "format": "MEM {used:0.1f}/{total:0.1f}G"
+    },
+
+    "pulseaudio": {
+        "format": "Vol {volume}%",
+        "format-muted": "Vol Muted",
+        "on-click": "pavucontrol"
+    },
+
+    // 音量(Vol)と揃えてテキストラベル表示。充電中=CHR / 満充電=FULL / 放電中=BAT
+    "battery": {
+        "interval": 30,
+        "states": { "good": 95, "warning": 30, "critical": 15 },
+        "format": "BAT {capacity}%",
+        "format-charging": "CHR {capacity}%",
+        "format-plugged": "FULL {capacity}%",
+        "format-full": "FULL {capacity}%",
+        "tooltip-format": "{timeTo} ({power}W)"
+    },
+
+    "tray": {
+        "icon-size": 20,
+        "spacing": 8
+    },
+
+    "clock": {
+        "interval": 1,
+        "locale": "ja_JP.UTF-8",
+        "format": "󰃭 {0:%m/%d (%a)}  󰥔 {0:%H:%M:%S}",
+        "tooltip-format": "<tt><small>{calendar}</small></tt>"
+    }
+}

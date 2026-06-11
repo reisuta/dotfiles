@@ -42,12 +42,12 @@ echo "==> [Arch] Installing packages via pacman"
 sudo pacman -Syu --noconfirm
 
 # ベースパッケージ
-mapfile -t PKGS < <(grep -v '^#' "$DOTFILES/archpkgs.txt" | grep -v '^$')
+mapfile -t PKGS < <(sed 's/#.*//' "$DOTFILES/archpkgs.txt" | awk 'NF{print $1}')
 sudo pacman -S --needed --noconfirm "${PKGS[@]}"
 
 {{     if not $isWsl -}}
 # GUI パッケージ (WSL Arch では Windows 側ターミナルを使うので除外)
-mapfile -t GUI_PKGS < <(grep -v '^#' "$DOTFILES/archpkgs-gui.txt" | grep -v '^$')
+mapfile -t GUI_PKGS < <(sed 's/#.*//' "$DOTFILES/archpkgs-gui.txt" | awk 'NF{print $1}')
 sudo pacman -S --needed --noconfirm "${GUI_PKGS[@]}"
 
 # AUR パッケージ (yay 経由)
@@ -58,7 +58,7 @@ if ! command -v yay >/dev/null 2>&1; then
     (cd "$tmpdir/yay" && makepkg -si --noconfirm)
     rm -rf "$tmpdir"
 fi
-mapfile -t AUR_PKGS < <(grep -v '^#' "$DOTFILES/archpkgs-aur.txt" | grep -v '^$')
+mapfile -t AUR_PKGS < <(sed 's/#.*//' "$DOTFILES/archpkgs-aur.txt" | awk 'NF{print $1}')
 yay -S --needed --noconfirm "${AUR_PKGS[@]}"
 {{     end -}}
 
@@ -70,7 +70,7 @@ echo "==> [Ubuntu/Debian] Installing packages via apt"
 
 sudo apt update
 
-mapfile -t PKGS < <(grep -v '^#' "$DOTFILES/aptpkgs.txt" | grep -v '^$')
+mapfile -t PKGS < <(sed 's/#.*//' "$DOTFILES/aptpkgs.txt" | awk 'NF{print $1}')
 sudo apt install -y "${PKGS[@]}"
 
 # NOTE: Ubuntu 系は WSL Ubuntu のみを想定しているため GUI パッケージは導入しない。

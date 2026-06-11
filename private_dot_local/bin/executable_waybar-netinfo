@@ -1,0 +1,52 @@
+#!/bin/bash
+# waybar ネットワークモジュールのクリック動作。
+# バーには普段アイコンのみ表示し（画面収録に SSID を映さないため）、
+# クリックしたときだけ現在の接続詳細を kitty のフローティング小窓で表示する。
+#
+# notify-send は通知デーモン(mako 等)が必要だが未導入のため、
+# ネイティブ Wayland な kitty 小窓を使う（Xwayland 不使用・追加パッケージ不要）。
+# 小窓のフロート化は sway config の for_window [app_id="netinfo-popup"] ルールで行う。
+#
+# 依存: nmcli (NetworkManager), kitty
+
+set -euo pipefail
+
+# --- 接続中の wifi デバイスを探す ---
+dev=$(nmcli -t -f DEVICE,TYPE,STATE device 2>/dev/null \
+        | awk -F: '$2=="wifi" && $3=="connected" {print $1; exit}')
+
+if [ -n "${dev:-}" ]; then
+    line=$(nmcli -t -f IN-USE,SSID,SIGNAL,RATE dev wifi 2>/dev/null \
+            | awk -F: '$1=="*"{print; exit}')
+    ssid=$(printf '%s' "$line"  | awk -F: '{print $2}')
+    signal=$(printf '%s' "$line" | awk -F: '{print $3}')
+    rate=$(printf '%s' "$line"  | awk -F: '{print $4}')
+    ip=$(nmcli -t -f IP4.ADDRESS device show "$dev" 2>/dev/null \
+            | awk -F: 'NR==1{print $2}')
+    info=$(printf 'Wi-Fi\n  SSID  : %s\n  信号  : %s%%\n  速度  : %s\n  IP    : %s\n  IF    : %s' \
+            "${ssid:-?}" "${signal:-?}" "${rate:-?}" "${ip:-?}" "$dev")
+else
+    # --- 有線フォールバック ---
+    eth=$(nmcli -t -f DEVICE,TYPE,STATE device 2>/dev/null \
+            | awk -F: '$2=="ethernet" && $3=="connected" {print $1; exit}')
+    if [ -n "${eth:-}" ]; then
+        ip=$(nmcli -t -f IP4.ADDRESS device show "$eth" 2>/dev/null | awk -F: 'NR==1{print $2}')
+        info=$(printf '有線接続\n  IP    : %s\n  IF    : %s' "${ip:-?}" "$eth")
+    else
+        info="ネットワーク未接続"
+    fi
+fi
+
+# --- VPN(tun) があれば追記 ---
+if nmcli -t -f TYPE,STATE device 2>/dev/null | grep -q '^tun:connected'; then
+    info=$(printf '%s\n\nVPN: 接続中' "$info")
+fi
+
+# --- kitty フローティング小窓で表示（何かキーで閉じる） ---
+NETINFO="$info" kitty \
+    --class=netinfo-popup \
+    --title="network" \
+    -o initial_window_width=44c \
+    -o initial_window_height=12c \
+    sh -c 'printf "%s\n\n" "$NETINFO"; printf "(任意のキーで閉じる)"; read -rsn1' \
+    >/dev/null 2>&1 &

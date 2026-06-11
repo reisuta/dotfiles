@@ -1,0 +1,42 @@
+#!/bin/bash
+# Windows の「control」(コントロールパネル) 風ランチャ。
+# rofi で設定項目を一覧表示し、選んだ設定ツールを起動する。
+#
+# 起動方法:
+#   - Super+D (rofi drun) で "control" と打つ (control.desktop 経由)
+#   - もしくは sway のキーバインドから直接
+#
+# インストール済みのバイナリがある項目だけ自動的に表示する。
+# 後で wdisplays / nm-connection-editor 等を入れれば項目も自動で増える。
+#
+# 依存: rofi。各設定ツールは pavucontrol / nmtui(kitty) / blueman-manager 等。
+
+set -euo pipefail
+
+term="${TERMINAL:-kitty}"
+
+# "ラベル|起動コマンド|存在チェックするバイナリ" の定義
+entries=(
+  "Sound  (音量 / 出力先)|pavucontrol|pavucontrol"
+  "Network  (Wi-Fi / 接続)|$term -e nmtui|nmtui"
+  "Network GUI  (詳細設定)|nm-connection-editor|nm-connection-editor"
+  "Bluetooth  (デバイス)|blueman-manager|blueman-manager"
+  "Display  (解像度 / 配置)|wdisplays|wdisplays"
+)
+
+# インストール済みの項目だけ採用
+labels=""
+declare -A cmdmap
+for e in "${entries[@]}"; do
+  IFS='|' read -r label cmd bin <<<"$e"
+  if command -v "$bin" >/dev/null 2>&1; then
+    labels+="${label}"$'\n'
+    cmdmap["$label"]="$cmd"
+  fi
+done
+
+choice=$(printf '%s' "$labels" | rofi -dmenu -i -p "control" -no-custom)
+[ -z "$choice" ] && exit 0
+
+cmd="${cmdmap[$choice]:-}"
+[ -n "$cmd" ] && exec sh -c "$cmd"

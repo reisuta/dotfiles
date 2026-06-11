@@ -1,0 +1,78 @@
+/* Waybar style — Catppuccin Mocha (旧 swaybar の配色を踏襲) */
+
+* {
+    font-family: "MonaspiceNe Nerd Font", "Noto Sans CJK JP", monospace;
+    font-size: 17px;
+    min-height: 0;
+}
+
+window#waybar {
+    background-color: #1e1e2e;   /* base */
+    color: #cdd6f4;              /* text */
+}
+
+/* ── ワークスペース ── */
+#workspaces button {
+    padding: 0 8px;
+    color: #a6adc8;
+    background-color: #313244;
+    border: none;
+    border-radius: 0;
+}
+
+#workspaces button.focused,
+#workspaces button.visible {
+    color: #1e1e2e;
+    background-color: #89b4fa;   /* blue */
+}
+
+#workspaces button.urgent {
+    color: #1e1e2e;
+    background-color: #f38ba8;   /* red */
+}
+
+#mode {
+    color: #f9e2af;
+    padding: 0 8px;
+}
+
+/* ── 中央タスクバー ── */
+#taskbar button {
+    padding: 0 6px;
+    border-radius: 0;
+    background-color: transparent;
+}
+
+#taskbar button.active {
+    background-color: #45475a;   /* surface1 — フォーカス中を強調 */
+    border-bottom: 2px solid #89b4fa;
+}
+
+/* ── 右側モジュール共通 ── */
+#network,
+#cpu,
+#memory,
+#pulseaudio,
+#battery,
+#tray {
+    padding: 0 10px;
+    color: #cdd6f4;
+}
+
+/* ── 時計: 暗めのダークブルーの角丸ピルで際立たせる ── */
+#clock {
+    color: #cdd6f4;              /* text — 明るい文字 */
+    background-color: #16213e;   /* 暗めのダークブルー */
+    font-weight: bold;
+    padding: 0 14px;
+    margin: 6px 8px 6px 4px;
+    border-radius: 14px;
+    border: 1px solid #2a3a5e;   /* 一段明るい青で輪郭を締める */
+}
+
+/* 状態色 (i3status の color_good / degraded / bad に対応) */
+#battery.warning  { color: #f9e2af; }
+#battery.critical { color: #f38ba8; }
+#cpu.warning      { color: #f9e2af; }
+#network.disconnected { color: #f38ba8; }
+#pulseaudio.muted { color: #6c7086; }
