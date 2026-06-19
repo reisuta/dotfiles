@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- オリジナル抽象アイコン: ダークブルー→パープル地に 緑/シアン/紫ネオンのオービット -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1538"/>
+      <stop offset="0.55" stop-color="#160a33"/>
+      <stop offset="1" stop-color="#1f0a3a"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="0.05" y1="0.1" x2="0.95" y2="0.95">
+      <stop offset="0" stop-color="#00ff9c"/>
+      <stop offset="0.5" stop-color="#00e0ff"/>
+      <stop offset="1" stop-color="#b026ff"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="58" fill="url(#bg)"/>
+  <rect x="8.5" y="8.5" width="239" height="239" rx="57.5" fill="none" stroke="#ffffff" stroke-opacity="0.07"/>
+  <g fill="none" stroke="url(#neon)" stroke-linecap="round" filter="url(#glow)">
+    <path d="M70 162 A 66 66 0 1 1 188 116" stroke-width="15"/>
+    <path d="M156 198 A 74 74 0 0 1 74 66" stroke-width="9" stroke-opacity="0.8"/>
+  </g>
+  <g filter="url(#glow)">
+    <circle cx="188" cy="116" r="12" fill="#00e0ff"/>
+    <circle cx="70" cy="162" r="7.5" fill="#00ff9c"/>
+    <circle cx="156" cy="198" r="6.5" fill="#b026ff"/>
+  </g>
+</svg>

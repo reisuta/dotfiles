@@ -3,6 +3,7 @@
 .config/keyd
 
 # Firefox / Zen の設定はランダムなプロファイル名のディレクトリへ
-# run_onchange スクリプトでコピーするため、~/.config/firefox には配置しない
-# （dot_config/firefox はあくまで素材置き場）。
+# run_onchange スクリプトでコピーするため、~/.config 直下には配置しない
+# （dot_config/firefox・dot_config/zen はあくまで素材置き場）。
 .config/firefox
+.config/zen

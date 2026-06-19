@@ -1,0 +1,100 @@
+#!/bin/bash
+# Firefox / Zen の設定を反映する。chezmoi apply 後に実行。
+# 下のハッシュが変わると再実行される (= 素材を編集して chezmoi apply で自動反映)。
+#
+# 方針: 共通設定(prefs / 自作スタート画面 / policies)は dot_config/firefox を「正」とし、
+#       Zen はそれを踏襲。ブラウザ固有のテーマCSSと追加prefsだけ分離する。
+#         共通(=Firefox): dot_config/firefox/{user.js, chrome/userChrome.css, policies.json, newtab/}
+#         Zen固有       : dot_config/zen/{user.js, chrome/userChrome.css}
+#
+# プロファイル名はランダムなので profiles.ini から解決し、実体をコピーする。
+# 反映には対象ブラウザの再起動が必要。
+#
+# ff user.js   hash: {{ include "dot_config/firefox/user.js" | sha256sum }}
+# ff chrome    hash: {{ include "dot_config/firefox/chrome/userChrome.css" | sha256sum }}
+# ff policies  hash: {{ include "dot_config/firefox/policies.json" | sha256sum }}
+# newtab html  hash: {{ include "dot_config/firefox/newtab/index.html" | sha256sum }}
+# zen user.js  hash: {{ include "dot_config/zen/user.js" | sha256sum }}
+# zen chrome   hash: {{ include "dot_config/zen/chrome/userChrome.css" | sha256sum }}
+# icon abstract hash: {{ include "private_dot_local/share/icons/browser-variants/abstract-neon.svg" | sha256sum }}
+# icon zen      hash: {{ include "private_dot_local/share/icons/browser-variants/zen-abstract.svg" | sha256sum }}
+
+set -euo pipefail
+
+FF="{{ .chezmoi.sourceDir }}/dot_config/firefox"   # 共通 ＆ Firefox
+ZEN="{{ .chezmoi.sourceDir }}/dot_config/zen"      # Zen 固有
+XDG="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+# profiles.ini からアクティブなプロファイルの相対パスを取得 (Firefox/Zen共通フォーマット)
+resolve_profile() {
+    local ini="$1"
+    awk -F= '
+        /^\[Install/{ins=1; next} /^\[/{ins=0}
+        ins && $1=="Default"{print $2; found=1; exit}
+        END{ if(!found) exit 1 }
+    ' "$ini" 2>/dev/null && return 0
+    awk -F= '
+        /^\[Profile/{p=1; path=""; def=0; next} /^\[/{p=0}
+        p && $1=="Path"{path=$2}
+        p && $1=="Default" && $2=="1"{def=1}
+        def && path!=""{print path; exit}
+    ' "$ini"
+}
+
+# $1=プロファイル基底dir  $2=配置するuserChrome.cssのパス  $3=追加で末尾連結するuser.js(任意)
+deploy() {
+    local base="$1" chrome="$2" extra="${3:-}"
+    [ -f "$base/profiles.ini" ] || return 0
+    local rel prof
+    rel="$(resolve_profile "$base/profiles.ini")" || true
+    if [ -z "${rel:-}" ]; then echo "  プロファイル特定不可、スキップ: $base"; return 0; fi
+    prof="$base/$rel"
+    [ -d "$prof" ] || { echo "  プロファイル不在、スキップ: $prof"; return 0; }
+    mkdir -p "$prof/chrome"
+    # user.js = 共通(Firefoxを正) ＋ 任意のブラウザ固有追記 (後勝ち)
+    cat "$FF/user.js" > "$prof/user.js"
+    [ -n "$extra" ] && [ -f "$extra" ] && cat "$extra" >> "$prof/user.js"
+    install -m644 "$chrome" "$prof/chrome/userChrome.css"
+    # 自作スタート画面(共通)を配置し、ホームページに設定 (プロファイルのfile://パスを注入)
+    if [ -f "$FF/newtab/index.html" ]; then
+        rm -rf "$prof/newtab"
+        cp -r "$FF/newtab" "$prof/newtab"
+        # file:// URL は空白を %20 に (Zenの既定プロファイル名 "Default (release)" 等に空白が入るため)
+        printf 'user_pref("browser.startup.homepage", "file://%s/newtab/index.html");\n' "${prof// /%20}" >> "$prof/user.js"
+    fi
+    echo "  配置: $prof"
+}
+
+echo "==> Firefox プロファイルへ反映 (共通設定＋Firefox用テーマ)"
+deploy "$HOME/.mozilla/firefox"                              "$FF/chrome/userChrome.css"
+deploy "$XDG/mozilla/firefox"                                "$FF/chrome/userChrome.css"
+deploy "$HOME/.var/app/org.mozilla.firefox/.mozilla/firefox" "$FF/chrome/userChrome.css"
+
+echo "==> Zen プロファイルへ反映 (共通設定を踏襲＋Zen用テーマ/固有prefs)"
+deploy "$HOME/.zen"                                "$ZEN/chrome/userChrome.css" "$ZEN/user.js"
+deploy "$XDG/zen"                                  "$ZEN/chrome/userChrome.css" "$ZEN/user.js"
+deploy "$HOME/.var/app/app.zen_browser.zen/.zen"   "$ZEN/chrome/userChrome.css" "$ZEN/user.js"
+
+{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "arch") (not (.chezmoi.kernel.osrelease | lower | contains "microsoft")) -}}
+# policies: Firefox は /etc/firefox/policies/ に配置。
+# Zen は /opt/zen-browser-bin/distribution/policies.json (パッケージ所有・更新で上書き) のため触らない。
+if command -v firefox >/dev/null 2>&1; then
+    echo "==> policies.json を /etc/firefox/policies/ へ反映 (Firefoxのみ)"
+    sudo install -Dm644 "$FF/policies.json" /etc/firefox/policies/policies.json
+fi
+{{ else -}}
+echo "(policies.json は Arch native の Firefox のみ。スキップ)"
+{{ end -}}
+
+# 初回のみ、ブラウザアイコンの既定を設定 (以後の手動切替 browser-icon は尊重する)
+if [ -x "$HOME/.local/bin/browser-icon" ]; then
+    [ -e "$HOME/.local/share/icons/browser-active.svg" ] || {
+        echo "==> Firefoxアイコン既定を設定 (abstract-neon)"
+        "$HOME/.local/bin/browser-icon" firefox abstract-neon || true; }
+    [ -e "$HOME/.local/share/icons/zen-active.svg" ] || {
+        echo "==> Zenアイコン既定を設定 (zen-abstract)"
+        "$HOME/.local/bin/browser-icon" zen zen-abstract || true; }
+fi
+
+echo "==> 反映完了。設定は対象ブラウザの再起動後に有効になります。"
+echo "    アイコン切替は: browser-icon [firefox|zen|all] <name>  (例: browser-icon zen zen-abstract)"

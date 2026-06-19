@@ -1,0 +1,26 @@
+[Desktop Entry]
+# ユーザ側 (~/.local/share/applications) の .desktop はシステム版より優先される。
+# アイコンだけネオン緑の自作版に差し替え、他はシステムの Firefox と同等。
+Version=1.0
+Type=Application
+Name=Firefox
+GenericName=Web Browser
+Comment=Browse the World Wide Web
+Exec=/usr/lib/firefox/firefox %u
+TryExec=/usr/lib/firefox/firefox
+Icon={{ .chezmoi.homeDir }}/.local/share/icons/browser-active.svg
+Terminal=false
+StartupNotify=true
+StartupWMClass=firefox
+Categories=GNOME;GTK;Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;application/xml;application/rss+xml;application/rdf+xml;image/gif;image/jpeg;image/png;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/mailto;
+Keywords=Internet;WWW;Browser;Web;Explorer;
+Actions=new-window;new-private-window;
+
+[Desktop Action new-window]
+Name=New Window
+Exec=/usr/lib/firefox/firefox --new-window %u
+
+[Desktop Action new-private-window]
+Name=New Private Window
+Exec=/usr/lib/firefox/firefox --private-window %u
