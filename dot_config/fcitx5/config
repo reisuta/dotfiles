@@ -1,0 +1,12 @@
+# fcitx5 ホットキー設定
+# US配列なので JIS の かな/英数 キーが無い。左右Altで「日本語ON/英語OFF」を
+# 決め打ちする（トグルをやめてモード迷子を防ぐ）。
+#   左Alt → 日本語ON（Activate）
+#   右Alt → 英語OFF（Deactivate）
+# 他キーと同時押し時は通常のAltとして動作する（単押し時のみIMEトリガー）。
+
+[Hotkey/ActivateKeys]
+0=Alt_L
+
+[Hotkey/DeactivateKeys]
+0=Alt_R

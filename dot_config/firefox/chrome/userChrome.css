@@ -1,0 +1,120 @@
+/* ╔══════════════════════════════════════════════════════════════╗
+ * ║  userChrome.css —  "ANIMATED CYBER GRADIENT" theme             ║
+ * ║  ダークなグラデが流れ、ネオンが脈打つ Firefox/Zen のUI。       ║
+ * ║   配置先: <profile>/chrome/userChrome.css                       ║
+ * ║   有効化: user.js の legacyUserProfileCustomizations.stylesheets║
+ * ║   反映  : ブラウザを再起動。                                    ║
+ * ║  ▸ 色は :root 変数、動きの速さは各 animation の秒数で調整。      ║
+ * ╚══════════════════════════════════════════════════════════════╝ */
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+:root {
+  /* ── パレット ── */
+  --hk-bg:      #07090d;
+  --hk-bg-alt:  #0d1117;
+  --hk-fg:      #c9d1d9;
+  --hk-accent:  #00ff9c;   /* ネオングリーン (選択タブ等) */
+  --hk-accent2: #00e0ff;   /* シアン */
+  --hk-accent3: #b026ff;   /* バイオレット */
+  --hk-dim:     #1b2330;
+  --hk-tab-title: #5ab0ff; /* タブのタイトル文字色 (青) */
+  --hk-tabwidth: 250px;    /* 縦タブの最小幅 (Brave風に広め。ドラッグで更に広げられる) */
+  --hk-font:    "JetBrains Mono", "Hack", "Fira Code", monospace;
+
+  /* 縦タブ用のダークレッド・グラデ */
+  --hk-sidebar: linear-gradient(180deg, #2a0a0e 0%, #1a0609 48%, #240910 100%);
+
+  /* 流れるダークグラデ (背景用) */
+  --hk-grad: linear-gradient(120deg,
+      #05070a 0%, #0a1320 22%, #06231c 42%,
+      #0a1320 62%, #120a24 82%, #05070a 100%);
+
+  /* Firefox 内部変数の上書き */
+  --toolbar-color: var(--hk-fg) !important;
+  --lwt-accent-color: var(--hk-bg) !important;
+  --toolbarbutton-icon-fill: var(--hk-accent) !important;
+  --tab-selected-textcolor: var(--hk-accent) !important;
+  --toolbar-field-background-color: rgba(13,17,23,.7) !important;
+  --toolbar-field-color: var(--hk-fg) !important;
+  --toolbar-field-focus-background-color: #000 !important;
+  --toolbar-field-border-color: var(--hk-dim) !important;
+  --sidebar-background-color: transparent !important;
+  --sidebar-text-color: var(--hk-fg) !important;
+}
+
+/* ── アニメーション定義 ── */
+@keyframes hk-flow   { 0%{background-position:0% 50%}   100%{background-position:300% 50%} }
+@keyframes hk-pulse  { 0%,100%{opacity:.55; box-shadow:0 0 6px -2px var(--hk-accent)}
+                       50%   {opacity:1;   box-shadow:0 0 14px 0 var(--hk-accent)} }
+@keyframes hk-spin   { to{ transform:rotate(360deg) } }
+@keyframes hk-hue    { to{ filter:hue-rotate(360deg) } }
+
+* { font-family: var(--hk-font) !important; }
+
+/* ── ツールバー全体: 流れるダークグラデ＋脈打つネオンの底辺 ── */
+#navigator-toolbox {
+  background: var(--hk-grad) !important;
+  background-size: 300% 100% !important;
+  animation: hk-flow 24s linear infinite !important;
+  position: relative !important;
+  border-bottom: 1px solid var(--hk-accent) !important;
+}
+#navigator-toolbox::after {       /* 底辺のネオンライン (明滅) */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, var(--hk-accent2), var(--hk-accent), var(--hk-accent3));
+  animation: hk-pulse 4s ease-in-out infinite;
+}
+
+/* ── URLバー: 半透明＋フォーカスで回転する虹色リング ── */
+#urlbar, #searchbar {
+  border: 1px solid var(--hk-dim) !important;
+  border-radius: 6px !important;
+  background: rgba(13,17,23,.7) !important;
+  position: relative !important;
+}
+#urlbar[focused="true"] {
+  border-color: transparent !important;
+  background:
+    linear-gradient(#000, #000) padding-box,
+    conic-gradient(from 0deg, var(--hk-accent), var(--hk-accent2), var(--hk-accent3), var(--hk-accent)) border-box !important;
+  border: 1px solid transparent !important;
+  box-shadow: 0 0 14px -2px var(--hk-accent2) !important;
+}
+#urlbar-input::selection { background: var(--hk-accent) !important; color:#000 !important; }
+
+/* ── 縦タブ / サイドバー: ダークレッドのグラデ＋Brave風に広め ── */
+#sidebar-box, #vertical-tabs, #tabbrowser-tabs[orient="vertical"] {
+  background: transparent !important;
+}
+#sidebar-main, #vertical-tabs {
+  background: var(--hk-sidebar) !important;
+  min-width: var(--hk-tabwidth) !important;   /* これより狭くしない。ドラッグで広げるのは可 */
+}
+
+/* タブのタイトル: 既定は読みやすい青 (黒背景でも視認できるよう) */
+.tabbrowser-tab .tab-label {
+  color: var(--hk-tab-title) !important;
+}
+
+/* 選択中タブ: グラデの帯＋発光する文字＋左のネオンバー */
+.tabbrowser-tab[selected] .tab-background {
+  background: linear-gradient(90deg, rgba(255,45,85,.22), rgba(0,224,255,.05) 60%, transparent) !important;
+  border-left: 2px solid var(--hk-accent) !important;
+}
+.tabbrowser-tab[selected] .tab-label {
+  color: var(--hk-accent) !important;             /* 選択中は緑で強調 */
+  text-shadow: 0 0 8px var(--hk-accent) !important;
+}
+.tabbrowser-tab:hover .tab-background:not([selected]) {
+  background: rgba(255,255,255,.06) !important;
+}
+
+/* ── ツールバーアイコン: hover でシアン発光 ── */
+toolbarbutton:hover { filter: drop-shadow(0 0 5px var(--hk-accent2)) !important; }
+
+/* ── 細いネオンのスクロールバー ── */
+:root { scrollbar-color: var(--hk-accent) transparent !important; scrollbar-width: thin !important; }
+
+/* ── コンテンツ裏地も黒に寄せてチラ見え防止 ── */
+#tabbrowser-tabpanels, browser { background-color: var(--hk-bg) !important; }

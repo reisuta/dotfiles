@@ -183,10 +183,6 @@ psmem-pss() {
                     else         printf "%8.0f MB  %s\n", $1, $2 }'
 }
 
-if [ $SHLVL = 1 ]; then
-  tmux
-fi
-
 goo() {
   local str opt
   if [ $# != 0 ]; then

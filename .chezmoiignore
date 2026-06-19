@@ -1,0 +1,8 @@
+# keyd 設定は /etc/keyd へ run_onchange スクリプトでコピーするため、
+# ~/.config/keyd には配置しない（keyd は /etc/keyd/*.conf のみ読む）。
+.config/keyd
+
+# Firefox / Zen の設定はランダムなプロファイル名のディレクトリへ
+# run_onchange スクリプトでコピーするため、~/.config/firefox には配置しない
+# （dot_config/firefox はあくまで素材置き場）。
+.config/firefox
