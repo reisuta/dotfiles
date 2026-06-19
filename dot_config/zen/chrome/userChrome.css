@@ -1,0 +1,60 @@
+/* ╔══════════════════════════════════════════════════════════════╗
+ * ║  userChrome.css (Zen 用)  —  TERMINAL / CYBER パレット          ║
+ * ║  Firefox版テーマはZenのDOM構造と合わず崩れるため、Zenは別ファイル。║
+ * ║   配置先: <zen-profile>/chrome/userChrome.css                   ║
+ * ║   有効化: 共通user.js の legacyUserProfileCustomizations=true    ║
+ * ║   反映  : Zen再起動。                                           ║
+ * ║  ▸ Zenは独自テーマ機構(Zen Mods)も持つ。本ファイルは「壊れにくい  ║
+ * ║    最小の再着色」に留め、本格テーマは実機を見ながら詰める方針。    ║
+ * ╚══════════════════════════════════════════════════════════════╝ */
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+:root {
+  /* Firefox版と共通のパレット (色を合わせる) */
+  --hk-bg:      #07090d;
+  --hk-fg:      #c9d1d9;
+  --hk-accent:  #00ff9c;   /* ネオングリーン */
+  --hk-accent2: #00e0ff;   /* シアン */
+  --hk-accent3: #b026ff;   /* バイオレット */
+  --hk-dim:     #1b2330;
+  --hk-font:    "JetBrains Mono", "Hack", "Fira Code", monospace;
+}
+
+/* ── 安全度の高い再着色 (Zenでもほぼ確実に効く範囲) ── */
+
+/* UIを等幅フォントに */
+* { font-family: var(--hk-font) !important; }
+
+/* テキスト選択・スクロールバーをネオンに */
+::selection { background: var(--hk-accent) !important; color: #000 !important; }
+:root { scrollbar-color: var(--hk-accent) transparent !important; scrollbar-width: thin !important; }
+
+/* URLバー: フォーカスでネオン発光 (Zenでも #urlbar は存在) */
+#urlbar[focused="true"] {
+  box-shadow: 0 0 14px -2px var(--hk-accent2) !important;
+  outline: 1px solid var(--hk-accent) !important;
+}
+#urlbar-input::selection { background: var(--hk-accent) !important; color: #000 !important; }
+
+/* タブのタイトルを読みやすい青に / 選択中は緑で強調 (Zenのタブ構造により要調整) */
+.tabbrowser-tab .tab-label { color: #5ab0ff !important; }
+.tabbrowser-tab[selected] .tab-label {
+  color: var(--hk-accent) !important;
+  text-shadow: 0 0 8px var(--hk-accent) !important;
+}
+
+/* ── 普段のURLを読みやすく (floating-on-type のアイドル表示が小さい対策・実験的) ──
+   中央Ctrl+T(入力時の浮遊)は残したまま、常時表示のURL文字だけ大きく/省略させない。
+   ※ Zenの実要素により効き方が変わる。効かない/崩れる場合はこのブロックを消す。 */
+#urlbar, #urlbar-input {
+  font-size: 1.05rem !important;
+}
+#urlbar:not([focused="true"]) #urlbar-input {
+  text-overflow: clip !important;   /* 末尾の「…」省略をやめ、できるだけ表示 */
+}
+
+/* ── ここから下は Zen の実DOMを見ながら追記する領域 ──
+   Zenはタブバー/ツールバー/サイドバーを独自構造で描くため、
+   Firefox版のような #navigator-toolbox / #sidebar-main 直撃は効かないことが多い。
+   実機で要素を調べて、グラデやネオン枠を足していく。 */

@@ -1,0 +1,62 @@
+#!/bin/bash
+# Firefox / Zen のアイコンを 1 コマンドで切り替える。
+#
+#   browser-icon                       … 利用可能なアイコン一覧
+#   browser-icon <name>                … Firefox に <name> を適用 (後方互換)
+#   browser-icon firefox <name>        … Firefox に適用
+#   browser-icon zen <name>            … Zen に適用
+#   browser-icon all <name>            … 両方に同じアイコンを適用
+#
+# アイコン実体: ~/.local/share/icons/browser-variants/<name>.svg (chezmoi管理)
+# 反映先 (ブラウザごと):
+#   ランチャー : ~/.local/share/icons/{browser,zen}-active.svg
+#                (firefox.desktop / zen.desktop の Icon= がこの固定パスを指す)
+#   waybar     : Papirus-Dark テーマのアイコンを上書き
+#                firefox -> categories/firefox.svg   (Papirusが既に持つ場所)
+#                zen     -> apps/zen-browser.svg      (Papirusに無いので新規追加)
+
+set -euo pipefail
+
+VAR_DIR="$HOME/.local/share/icons/browser-variants"
+PAPIRUS="$HOME/.local/share/icons/Papirus-Dark"
+
+list() {
+    echo "利用可能なアイコン:"
+    for f in "$VAR_DIR"/*.svg; do [ -e "$f" ] && echo "  - $(basename "$f" .svg)"; done
+}
+
+# $1=ブラウザ($active固定パス名) $2=Papirusサブディレクトリ $3=Papirusアイコン名 $4=変種svg
+apply_one() {
+    local active="$HOME/.local/share/icons/$1" subdir="$2" iconname="$3" src="$4"
+    install -Dm644 "$src" "$active"
+    for sz in 32 64; do
+        local d="$PAPIRUS/${sz}x${sz}/${subdir}"
+        mkdir -p "$d"; rm -f "$d/${iconname}.svg"; install -m644 "$src" "$d/${iconname}.svg"
+    done
+}
+
+apply_firefox() { apply_one "browser-active.svg" "categories" "firefox"     "$1"; }
+apply_zen()     { apply_one "zen-active.svg"     "categories" "zen-browser" "$1"; }
+
+if [ $# -lt 1 ]; then list; echo; echo "切替: browser-icon [firefox|zen|all] <name>"; exit 0; fi
+
+# 第1引数がブラウザ指定か判定 (後方互換: 指定なしは firefox 扱い)
+case "$1" in
+    firefox|zen|all) target="$1"; name="${2:-}";;
+    *)               target="firefox"; name="$1";;
+esac
+[ -n "$name" ] || { echo "エラー: アイコン名を指定してください" >&2; list; exit 1; }
+
+src="$VAR_DIR/$name.svg"
+[ -f "$src" ] || { echo "エラー: アイコン '$name' が見つかりません" >&2; list; exit 1; }
+
+case "$target" in
+    firefox) apply_firefox "$src";;
+    zen)     apply_zen "$src";;
+    all)     apply_firefox "$src"; apply_zen "$src";;
+esac
+rm -f "$PAPIRUS/icon-theme.cache"
+
+echo "[$target] のアイコンを '$name' に切り替えました。"
+echo "  ランチャー: 即時〜再ログインで反映 / waybar: 再起動で反映"
+echo "  -> killall waybar; nohup waybar >/dev/null 2>&1 &"

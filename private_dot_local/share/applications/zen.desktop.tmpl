@@ -1,0 +1,25 @@
+[Desktop Entry]
+# ユーザ側の zen.desktop はシステム版(/usr/share/applications/zen.desktop)より優先される。
+# アイコンだけ自作版(browser-icon が書き出す zen-active.svg)に差し替え、他は同等。
+Version=1.0
+Type=Application
+Name=Zen Browser
+GenericName=Web Browser
+Comment=Experience tranquillity while browsing the web
+Exec=/opt/zen-browser-bin/zen-bin %u
+TryExec=/opt/zen-browser-bin/zen-bin
+Icon={{ .chezmoi.homeDir }}/.local/share/icons/zen-active.svg
+Terminal=false
+StartupNotify=true
+StartupWMClass=zen
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+Actions=new-window;new-private-window;
+
+[Desktop Action new-window]
+Name=New Window
+Exec=/opt/zen-browser-bin/zen-bin --blank-window %u
+
+[Desktop Action new-private-window]
+Name=New Private Window
+Exec=/opt/zen-browser-bin/zen-bin --private-window %u
