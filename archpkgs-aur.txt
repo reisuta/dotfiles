@@ -9,3 +9,7 @@ rofi-calc
 
 # rofi 拡張: クリップボード履歴 (greenclip も同パッケージで入る)
 rofi-greenclip
+
+# 音声再生中は swayidle のアイドル抑制を立てる (動画視聴中の自動ロック防止)
+# 全画面でもウィンドウ表示でも、Xwayland ブラウザでも音が出ていれば効く。
+sway-audio-idle-inhibit-git

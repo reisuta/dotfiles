@@ -49,10 +49,23 @@ exec wl-paste --type image --watch cliphist store
 exec dex --autostart --environment sway
 
 # アイドル/ロック (旧 xss-lock + i3lock)
+# swayidle はアイドル抑制 (idle-inhibit) を尊重するので、抑制が立っている間は
+# timeout のロック/画面オフが発火しない。
 exec swayidle -w \
-    timeout 900 'swaylock -f' \
-    timeout 1800 'swaymsg "output * power off"' resume 'swaymsg "output * power on"' \
+    timeout 1800 'swaylock -f' \
+    timeout 3600 'swaymsg "output * power off"' resume 'swaymsg "output * power on"' \
     before-sleep 'swaylock -f'
+    # timeout 1800 = 30分でロック / timeout 3600 = 60分で画面オフ (単位は秒)
+
+# 動画視聴中の自動ロック防止。
+# (1) 音声再生中はアイドル抑制を立てる常駐ツール (AUR: sway-audio-idle-inhibit-git)。
+#     全画面/ウィンドウ表示/Xwayland ブラウザを問わず、音が出ていれば効く。
+#     再生を止めれば抑制が外れ、通常通り 900 秒でロックされる。
+exec sway-audio-idle-inhibit
+# (2) 音の出ない全画面再生も拾えるよう、全画面ウィンドウがある間は抑制する。
+#     Wayland ネイティブ (app_id) と Xwayland (class) の両方を対象にする。
+for_window [app_id=".*"] inhibit_idle fullscreen
+for_window [class=".*"] inhibit_idle fullscreen
 
 # 手動ロック: Ctrl+Super+L (テーマは ~/.config/swaylock/config から読む)
 bindsym --to-code Control+Mod4+l exec swaylock

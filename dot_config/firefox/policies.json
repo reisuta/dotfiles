@@ -1,0 +1,34 @@
+{
+  "//": "Firefox Enterprise Policies. 固定パス(/etc/firefox/policies/policies.json)に置かれ、",
+  "//2": "user.js より強い強制力でブラウザ全体に適用される。スキーマ: https://mozilla.github.io/policy-templates/",
+  "policies": {
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisablePocket": true,
+    "DisableFirefoxAccounts": false,
+    "DisableDefaultBrowserAgent": true,
+    "NoDefaultBookmarks": true,
+    "OverrideFirstRunPage": "",
+    "OverridePostUpdatePage": "",
+    "UserMessaging": {
+      "WhatsNew": false,
+      "ExtensionRecommendations": false,
+      "FeatureRecommendations": false,
+      "SkipOnboarding": true
+    },
+    "FirefoxHome": {
+      "SponsoredTopSites": false,
+      "SponsoredPocket": false,
+      "Pocket": false
+    },
+    "//newtab": "新規タブを自作HTMLにするため New Tab Override を自動インストール。",
+    "//newtab2": "初回のみ拡張のオプションで URL に下記 file:// を貼る (プロファイルのパスは setup スクリプトの出力を参照):",
+    "//newtab3": "  file://<profile>/newtab/index.html",
+    "ExtensionSettings": {
+      "newtaboverride@agenedia.com": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/new-tab-override/latest.xpi"
+      }
+    }
+  }
+}

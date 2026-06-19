@@ -1,0 +1,41 @@
+#!/bin/bash
+# keyd 設定を /etc/keyd へ反映し、keyd を有効化する。native Arch (非 WSL) のみ。
+# chezmoi が apply 後に実行する。下の conf ハッシュが変わると再実行される
+# （= dot_config/keyd/default.conf を編集して chezmoi apply すれば自動反映）。
+#
+# keyd 本体のインストールは archpkgs.txt 経由 (run_once_before)。
+# /home が別マウントのため symlink ではなく実体コピーで /etc に置く（早期ブート対策）。
+#
+# keyd config hash: {{ include "dot_config/keyd/default.conf" | sha256sum }}
+
+set -euo pipefail
+
+{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "arch") (not (.chezmoi.kernel.osrelease | lower | contains "microsoft")) -}}
+
+if ! command -v keyd >/dev/null 2>&1; then
+    echo "keyd が見つからないためスキップします (sudo pacman -S keyd)"
+    exit 0
+fi
+
+echo "==> keyd 設定を /etc/keyd へ反映"
+sudo install -Dm644 "{{ .chezmoi.sourceDir }}/dot_config/keyd/default.conf" /etc/keyd/default.conf
+
+# keyd は仮想キーボード生成に /dev/uinput が必要。
+# モジュールを今ロード＋起動時自動ロードを永続化（未ロードだと keyd が
+# "open uinput: No such device" で起動失敗する）。
+echo uinput | sudo tee /etc/modules-load.d/uinput.conf >/dev/null
+sudo modprobe uinput
+
+# 起動時自動有効化＋起動（冪等）
+sudo systemctl enable --now keyd
+sudo systemctl restart keyd
+
+# 実行中なら設定を再読み込み
+sudo keyd reload || true
+
+echo "==> keyd 反映完了"
+keyd --version
+
+{{ else -}}
+echo "native Arch ではないため keyd 設定をスキップします"
+{{ end -}}
