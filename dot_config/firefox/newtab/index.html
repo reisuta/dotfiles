@@ -54,13 +54,13 @@
   }
   tick(); setInterval(tick,1000*15);
 
-  /* ── 検索 (Google。URLっぽければ直接開く) ── */
+  /* ── 検索 (Startpage。URLっぽければ直接開く) ── */
   document.getElementById('search').addEventListener('submit',e=>{
     e.preventDefault();
     const v=document.getElementById('q').value.trim(); if(!v)return;
     const isUrl=/^https?:\/\//.test(v)||/^[\w-]+(\.[\w-]+)+(\/.*)?$/.test(v);
     location.href=isUrl?(/^https?:\/\//.test(v)?v:'https://'+v)
-                       :'https://www.google.com/search?q='+encodeURIComponent(v);
+                       :'https://www.startpage.com/sp/search?query='+encodeURIComponent(v);
   });
 
   /* ── three.js: 漂うネオンのパーティクル・ネットワーク ── */

@@ -21,13 +21,63 @@
       "SponsoredPocket": false,
       "Pocket": false
     },
-    "//newtab": "新規タブを自作HTMLにするため New Tab Override を自動インストール。",
-    "//newtab2": "初回のみ拡張のオプションで URL に下記 file:// を貼る (プロファイルのパスは setup スクリプトの出力を参照):",
-    "//newtab3": "  file://<profile>/newtab/index.html",
+    "//search": "カスタム検索エンジンを追加 (GUIの標準リストに無いものをコード管理で)。",
+    "//search2": "注意: SearchEngines ポリシーは公式には Firefox ESR 専用。通常版(release)では無視される可能性あり→要動作確認。",
+    "//search3": "アドレスバーで Alias(br/sp) + 語 でそのエンジン指定検索も可。",
+    "SearchEngines": {
+      "Add": [
+        {
+          "Name": "Brave Search",
+          "URLTemplate": "https://search.brave.com/search?q={searchTerms}",
+          "Method": "GET",
+          "Alias": "br",
+          "Description": "Brave Search (独立index)"
+        },
+        {
+          "Name": "Startpage",
+          "URLTemplate": "https://www.startpage.com/sp/search?query={searchTerms}",
+          "Method": "GET",
+          "Alias": "sp",
+          "Description": "Startpage (Google品質+追跡なし)"
+        }
+      ],
+      "Default": "Startpage"
+    },
+    "//ublock": "uBlock Origin を自動インストール (広告/トラッカー/悪性スクリプト遮断=プライバシー＋セキュリティ)。normal_installed=自分で無効化も可。",
+    "//newtab": "New Tab Override は file:// が使えず目的を果たせないため除去(blocked=自動アンインストール)。新規タブは about:blank に戻る。",
+    "//1password": "1Password (公式 1Password Devs, GUID実物照合済み)。パスワード管理。normal_installed=自分で削除も可。",
+    "//recommended": "厳選拡張(全てAMO公式でGUID/作者を実物照合済み)。キー=正規GUIDなので配布xpiのID不一致は拒否=偽物混入を防止。normal_installed=自分で無効化/削除も可。",
+    "//mac": "Multi-Account Containers (Mozilla公式@testpilot-containers): サイト毎にCookie/セッション分離。Firefox専用。",
+    "//tmpc": "Temporary Containers (作者stoically): タブ毎に使い捨てコンテナ自動生成。MACと併用で追跡分断。Firefox専用。",
+    "//sidebery": "Sidebery (作者mbnuqw, Recommended): 縦/ツリー型タブをサイドバーで。Firefox専用。",
+    "//tridactyl": "Tridactyl (作者Colin Caine 他): Vim式キーボード操作。",
     "ExtensionSettings": {
       "newtaboverride@agenedia.com": {
+        "installation_mode": "blocked"
+      },
+      "{d634138d-c276-4fc8-924b-40a0ea21d284}": {
         "installation_mode": "normal_installed",
-        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/new-tab-override/latest.xpi"
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/1password-x-password-manager/latest.xpi"
+      },
+      "uBlock0@raymondhill.net": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi"
+      },
+      "@testpilot-containers": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/multi-account-containers/latest.xpi"
+      },
+      "{c607c8df-14a7-4f28-894f-29e8722976af}": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/temporary-containers/latest.xpi"
+      },
+      "{3c078156-979c-498b-8990-85f7987dd929}": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/sidebery/latest.xpi"
+      },
+      "tridactyl.vim@cmcaine.co.uk": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/tridactyl-vim/latest.xpi"
       }
     }
   }

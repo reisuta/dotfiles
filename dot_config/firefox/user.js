@@ -80,6 +80,18 @@ user_pref("privacy.fingerprintingProtection", true);
 // user_pref("privacy.resistFingerprinting", true); // ←最強だがレターボックス等の副作用あり
 
 /* ═══════════════════════════════════════════════════════════
+   セキュリティ (攻撃耐性) — プライバシーとは別軸
+   ═══════════════════════════════════════════════════════════ */
+// HTTPS-Only モード: 平文HTTPを禁止しHTTPSへ強制。ダウングレード/MITM対策。
+// 非対応サイトは警告ページで確認できる(完全ブロックではない)。
+user_pref("dom.security.https_only_mode", true);
+user_pref("dom.security.https_only_mode_pbm", true); // プライベートウィンドウでも
+// セーフブラウジング(マルウェア/フィッシング保護)を明示的に固定 (既定でも有効)
+user_pref("browser.safebrowsing.malware.enabled", true);
+user_pref("browser.safebrowsing.phishing.enabled", true);
+user_pref("browser.safebrowsing.downloads.enabled", true);
+
+/* ═══════════════════════════════════════════════════════════
    ネットワーク系プライバシー (先読み・予測接続を止める)
    ═══════════════════════════════════════════════════════════ */
 user_pref("network.prefetch-next", false);
