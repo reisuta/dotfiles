@@ -21,7 +21,18 @@ archpkgs-gui.txt
 archpkgs-aur.txt
 aptpkgs.txt
 aptpkgs-gui.txt
+npmpkgs.txt
 .gitattributes
+
+# システム層 (Dockerfile) のファイル。ホームには配置しない。
+Dockerfile
+.dockerignore
+
+# mise.docker.toml は Dockerfile 専用の宣言。
+#   ファイル名を mise.toml にすると mise が ~/dotfiles で自動検出して実機に影響するため、
+#   あえて自動検出されない名前にしてある。ホームには配置しない。
+#   nvm を撤去して mise へ一本化する際に dot_config/mise/config.toml へ移すこと。
+mise.docker.toml
 
 # ============================================================
 # OS 別の除外

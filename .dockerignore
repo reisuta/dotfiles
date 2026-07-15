@@ -1,0 +1,20 @@
+# 秘密情報をイメージに焼かないための防波堤。
+*.key
+*.pem
+id_rsa*
+id_ed25519*
+.env
+.env.*
+key.txt
+*.age
+
+backup-*.tar.gz
+*.tar.gz
+*.wsl
+
+.serena/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+
+# .git と Dockerfile は除外しない (COPY . でリポジトリごと持ち込むため)。

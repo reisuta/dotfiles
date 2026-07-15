@@ -1,0 +1,4 @@
+# npm グローバル CLI。install スクリプトが npm install -g する。
+
+@openai/codex
+tree-sitter-cli

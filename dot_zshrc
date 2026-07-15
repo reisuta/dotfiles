@@ -1,6 +1,4 @@
 # プロンプトは Starship に委譲するので oh-my-zsh のテーマは無効化
-ZSH_THEME=""
-
 eval "$(zoxide init zsh)"
 
 # 後に有効
@@ -242,3 +240,7 @@ export PATH="$HOME/go/bin:$PATH"
 autoload -Uz add-zsh-hook
 _worklog_set_title() { print -Pn "\e]2;%~\a" }
 add-zsh-hook precmd _worklog_set_title
+
+. "$HOME/.atuin/bin/env"
+
+eval "$(atuin init zsh)"

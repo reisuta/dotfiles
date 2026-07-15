@@ -8,6 +8,7 @@
 #   archpkgs-gui:    {{ include "archpkgs-gui.txt" | sha256sum }}
 #   archpkgs-aur:    {{ include "archpkgs-aur.txt" | sha256sum }}
 #   aptpkgs.txt:     {{ include "aptpkgs.txt" | sha256sum }}
+#   npmpkgs.txt:     {{ include "npmpkgs.txt" | sha256sum }}
 
 set -euo pipefail
 
@@ -107,6 +108,11 @@ if ! command -v just >/dev/null 2>&1; then
         | bash -s -- --to "$HOME/.local/bin"
 fi
 
+if ! command -v uv >/dev/null 2>&1; then
+    echo "==> Installing uv"
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
+
 {{   else -}}
 echo "未対応のディストリビューション: {{ $distroId }}"
 exit 1
@@ -128,6 +134,24 @@ if [ ! -d "$ZSH_DIR" ]; then
     RUNZSH=no CHSH=no \
         sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
         "" --unattended
+fi
+
+# ============================================================
+# 全 OS 共通: node グローバル CLI
+# ============================================================
+# node 本体は入れない (実機は nvm。mise 一本化は未実施。詳細は mise.docker.toml)。
+
+if command -v npm >/dev/null 2>&1; then
+    if ! command -v pnpm >/dev/null 2>&1 && command -v corepack >/dev/null 2>&1; then
+        echo "==> Enabling pnpm via corepack"
+        corepack enable pnpm
+    fi
+
+    mapfile -t NPM_PKGS < <(sed 's/#.*//' "$DOTFILES/npmpkgs.txt" | awk 'NF{print $1}')
+    if [ ${#NPM_PKGS[@]} -gt 0 ]; then
+        echo "==> Installing global npm packages"
+        npm install -g "${NPM_PKGS[@]}"
+    fi
 fi
 
 echo "==> Package installation complete"

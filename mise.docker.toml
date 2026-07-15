@@ -1,0 +1,5 @@
+# Dockerfile 専用。mise.toml にすると実機の ~/dotfiles で自動検出されるため改名してある。
+# 実機を mise 一本化する際は dot_config/mise/config.toml へ移す (node の nvm→mise 移行と同時)。
+
+[tools]
+node = "24"
