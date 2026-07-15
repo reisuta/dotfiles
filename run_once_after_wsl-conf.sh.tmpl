@@ -1,0 +1,31 @@
+#!/bin/bash
+# /etc/wsl.conf を配置する (WSL のみ)。$HOME 外なので chezmoi ではなく sudo スクリプト。
+
+set -euo pipefail
+
+{{ if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+
+WSL_CONF="/etc/wsl.conf"
+DESIRED=$(cat <<'EOF'
+[boot]
+systemd=true
+
+[user]
+default={{ .chezmoi.username }}
+EOF
+)
+
+if [ -f "$WSL_CONF" ] && [ "$(cat "$WSL_CONF")" = "$DESIRED" ]; then
+    echo "==> /etc/wsl.conf は既に最新です"
+    exit 0
+fi
+
+echo "==> /etc/wsl.conf を更新"
+printf '%s\n' "$DESIRED" | sudo tee "$WSL_CONF" >/dev/null
+sudo chmod 0644 "$WSL_CONF"
+
+echo "    反映には Windows 側で 'wsl --shutdown' が必要です"
+
+{{ else -}}
+echo "WSL ではないため /etc/wsl.conf の設定をスキップします"
+{{ end -}}
