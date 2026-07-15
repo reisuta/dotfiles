@@ -9,6 +9,7 @@ git
 zsh
 tmux
 neovim
+emacs-nox
 
 # CLI ユーティリティ
 fzf
@@ -16,6 +17,11 @@ ripgrep
 fd-find
 bat
 zoxide
+jq
+unzip
+
+# git の pager。有効化は gitconfig 側で core.pager = delta
+git-delta
 
 # GitHub CLI
 gh
@@ -27,3 +33,7 @@ python3
 build-essential
 curl
 ca-certificates
+
+# WSL 専用 (ubuntu-wsl=相互運用メタパッケージ, xclip=WSLg 経由のコピー)
+ubuntu-wsl
+xclip
