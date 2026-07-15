@@ -44,6 +44,45 @@ backup:
     chezmoi archive --output="backup-$(date +%Y%m%d-%H%M).tar.gz"
     @echo "==> backup-$(date +%Y%m%d-%H%M).tar.gz を作成しました"
 
+# ------------------------------------------------------------
+# WSL イメージ (システム層)
+# ------------------------------------------------------------
+
+# Dockerfile からイメージをビルド (identity は手元の id から注入)
+image-build tag="wsl-ubuntu":
+    docker build \
+        --build-arg USERNAME="$(id -un)" \
+        --build-arg UID="$(id -u)" \
+        --build-arg GID="$(id -g)" \
+        -t {{ tag }} .
+    @echo "==> {{ tag }} をビルドしました。`just image-shell` で中を確認できます。"
+
+# ビルドしたイメージの中に入って確認 (import 前の試着)
+image-shell tag="wsl-ubuntu":
+    docker run --rm -it {{ tag }} /usr/bin/zsh -l
+
+# イメージを新しい WSL ディストロとして import (既存 Ubuntu には触らない)
+# save ではなく export。save は OCI アーカイブで WSL が読めない。
+image-to-wsl name="ubuntu-iac" tag="wsl-ubuntu":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    win_home=$(wslpath "$(powershell.exe -NoProfile -Command 'Write-Output $env:USERPROFILE' | tr -d '\r')")
+    dest="${win_home}/WSL/{{ name }}"
+    tar="${win_home}/WSL/{{ name }}.tar"
+    mkdir -p "${win_home}/WSL"
+
+    cid=$(docker create {{ tag }})
+    trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+    docker export "$cid" -o "$tar"
+
+    wsl.exe --import "{{ name }}" "$(wslpath -w "$dest")" "$(wslpath -w "$tar")"
+    rm -f "$tar"
+
+    echo "==> 完了: wsl -d {{ name }} / 削除: wsl --unregister {{ name }}"
+
+# ビルド → import を一括実行
+wsl-image name="ubuntu-iac": image-build (image-to-wsl name)
+
 # chezmoi 管理対象 + 未管理ファイルの一覧
 status:
     @echo "==> chezmoi 管理対象 (差分があるもの):"
