@@ -1,0 +1,17 @@
+[wsl2]
+# 物理7.8GB。Windows側に約3.5GB残す配分
+memory=4GB
+processors=4
+
+# RAM不足時の逃げ道。nixos-rebuild のピークを吸収させる
+swap=8GB
+
+# GUIアプリ(WSLg)を使わないなら false でメモリ節約
+guiApplications=false
+
+[experimental]
+# 未使用メモリを段階的にWindowsへ返却（これが無いと確保しっぱなしになる）
+autoMemoryReclaim=gradual
+
+# 仮想ディスクの肥大化を抑える（/nix/store 対策）
+sparseVhd=true
