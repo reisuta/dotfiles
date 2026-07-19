@@ -17,32 +17,47 @@
 # =============================================================
 
 # -------------------------------------------------------------
+# 実行ファイルの存在判定
+#
+# Get-Command は全コマンド種別と PATHEXT を総当たりするため、
+# 「見つからない」場合が最も高コストになる (実測: 3 件で約 1.8 秒)。
+# PATH を直接走査する方が桁違いに速い。
+# -------------------------------------------------------------
+
+$script:PathDirs = @($env:PATH -split ';' | Where-Object { $_ })
+$script:PathExts = @('.exe', '.cmd', '.bat')
+
+function Test-Exe {
+    param([Parameter(Mandatory)][string]$Name)
+    foreach ($dir in $script:PathDirs) {
+        foreach ($ext in $script:PathExts) {
+            if ([System.IO.File]::Exists("$dir\$Name$ext")) { return $true }
+        }
+    }
+    return $false
+}
+
+# -------------------------------------------------------------
 # 外部ツールの初期化 (zsh 側と同じものを使う)
 #   starship.toml は ~/.config/starship.toml をシェル非依存で共有できる
 # -------------------------------------------------------------
 
-if (Get-Command starship -ErrorAction SilentlyContinue) {
-    Invoke-Expression (&starship init powershell)
-}
-
-if (Get-Command zoxide -ErrorAction SilentlyContinue) {
-    Invoke-Expression (& { (zoxide init powershell | Out-String) })
-}
-
-if (Get-Command mise -ErrorAction SilentlyContinue) {
-    Invoke-Expression (& { (mise activate pwsh | Out-String) })
-}
+if (Test-Exe 'starship') { Invoke-Expression (&starship init powershell) }
+if (Test-Exe 'zoxide')   { Invoke-Expression (& { (zoxide init powershell | Out-String) }) }
+if (Test-Exe 'mise')     { Invoke-Expression (& { (mise activate pwsh | Out-String) }) }
 
 # -------------------------------------------------------------
 # PSReadLine (zsh の補完体験に寄せる)
 # -------------------------------------------------------------
 
-if (Get-Module -ListAvailable PSReadLine) {
+# Get-Module -ListAvailable は全モジュールパスを走査するため遅い (実測 約 0.6 秒)。
+# 存在確認はせず、失敗を握り潰す方が速い。
+try {
     Set-PSReadLineOption -EditMode Windows
     Set-PSReadLineOption -HistoryNoDuplicates
     Set-PSReadLineOption -HistorySearchCursorMovesToEnd
 
-    # 予測候補。PSReadLine 2.2 未満では失敗するので握り潰す
+    # 予測候補。PSReadLine 2.2 未満では失敗するので段階的に落とす
     try {
         Set-PSReadLineOption -PredictionSource HistoryAndPlugin
         Set-PSReadLineOption -PredictionViewStyle ListView
@@ -54,6 +69,9 @@ if (Get-Module -ListAvailable PSReadLine) {
     # 上下キーで「打ちかけの文字列に前方一致する履歴」を辿る
     Set-PSReadLineKeyHandler -Key UpArrow   -Function HistorySearchBackward
     Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
+}
+catch {
+    # PSReadLine が無い環境 (ISE 等) では何もしない
 }
 
 # -------------------------------------------------------------
@@ -121,7 +139,7 @@ function gr {
 
 # ページャ。less があれば使い、無ければ標準のページングに落とす
 function l {
-    if (Get-Command less -ErrorAction SilentlyContinue) { less @args }
+    if (Test-Exe 'less') { less @args }
     else { Get-Content @args | Out-Host -Paging }
 }
 
