@@ -8,6 +8,11 @@ WSL を主戦場にしている前提で、Windows 側は「薄いホスト層�
 3. シェル (`Microsoft.PowerShell_profile.ps1`)
 4. アプリ導入 (winget)
 5. エクスプローラー等の最低限の UI
+6. ウィンドウ管理 (GlazeWM + Zebar + Flow Launcher)
+
+6 は上の方針からの意図的な逸脱。Windows で作業する時間が無視できなくなり、
+Sway の操作感がそのまま使えないコストの方が大きくなったため入れた。
+ここから先 (アイコンテーマ、シェル置換、Explorer の全面改造) には踏み込まない。
 
 ## ファイル
 
@@ -15,11 +20,119 @@ WSL を主戦場にしている前提で、Windows 側は「薄いホスト層�
 |---|---|---|
 | `setup-windows-registry.ps1` | 表示設定、キーボード、ロングパス | HKLM 部分のみ必要 |
 | `setup-windows-shell.ps1` | Win+R、送る、右クリック、`dev:`、スクショ保存先 | 不要 |
+| `setup-windows-tiling.ps1` | GlazeWM / Zebar / Flow Launcher の導入と配置 | 不要 |
+| `windows-tiling/` | 上が配置する設定ファイルの実体 | — |
 | `dev-handler.ps1` | `dev:` プロトコルのハンドラ | 不要 |
 | `Microsoft.PowerShell_profile.ps1` | `.zshrc` の Windows 版 | 不要 |
 | `../.wslconfig` | WSL2 VM のメモリ配分 | 不要 |
 
 すべて冪等。`-DryRun` で差分だけ確認できる。
+
+## タイリング環境 (`setup-windows-tiling.ps1`)
+
+Arch の Sway 環境を Windows 側で再現する。対応関係は以下。
+
+| Linux | Windows | 設定ファイル |
+|---|---|---|
+| sway | GlazeWM | `windows-tiling/glazewm/config.yaml` |
+| waybar | Zebar | `windows-tiling/zebar/tokyo-night/` (HTML/CSS) |
+| rofi | Flow Launcher | `windows-tiling/flow-launcher/Tokyo Night.xaml` |
+| yazi | Files | (アプリ側の設定のみ) |
+| swaybg | 静止画壁紙 | `windows-tiling/make-wallpaper.ps1` で生成 |
+
+### キーバインドは Sway に合わせてある
+
+`dot_config/sway/config` が正。**modifier だけ `Mod4` → `alt` に読み替え、
+キー配列と割当ては同一**にしてある。
+
+Super のまま持ってこられない理由は `Win+L` ひとつ。Sway の `$mod+l` は
+「フォーカス上」だが、Windows の `Win+L` はロックで、winlogon がキーボード
+フックより下の層で握っているため GlazeWM から奪えない。押すたびに画面が
+ロックされることになる。`Win+D` や `Win+E` は GlazeWM が奪えるのでこれだけが例外。
+
+`HKLM` の `DisableLockWorkstation` を立てれば `Win+L` 自体を殺して Super を
+使えるが、ロック機能を失う対価に見合わないので採らなかった。
+
+Sway にあって GlazeWM に無いもの (`layout stacking` / `tabbed`、`focus parent`) は
+未割当。詳細は `config.yaml` の冒頭コメントに対応表がある。
+
+### 引っかかりどころ
+
+**Zebar のローカルパック ID はディレクトリ名そのもの。**
+`local.<名前>` と書くと `No widget pack found` になる。
+公式スターターは `Program Files` 配下にあり書き換えられないので、
+`~/.glzr/zebar/<名前>/` に `zpack.json` を置いて自作パックにしている。
+
+**Zebar の JS は CDN から実行時に読ませない。**
+公式スターターは `zebar` に加えて React と Babel まで CDN から読む作りだが、
+これはバーの文脈で第三者のコードが動く経路になる。バーは `glazewm` プロバイダを
+握っており WM コマンドを実行できるうえ、動的 import なので SRI も付けられない。
+
+React と Babel は捨てて素の JS に書き直し、`zebar` 本体は取得時点のものを
+`zebar/tokyo-night/vendor/` に固定した。副作用としてオフラインでも描画される。
+
+**ただし取得物そのものはリポジトリに入れていない。**
+zebar は GPL-3.0-only、luxon は MIT、@tauri-apps/api は Apache-2.0 OR MIT で、
+いずれも再配布には著作権表示の保持が要るが、**esm.sh のミニファイ版はその表示を
+削ぎ落としている**ため条件を満たせない。zebar は GPL なのでさらに重い。
+そこで版管理するのは取得スクリプトと期待ハッシュ (`vendor/SHA256SUMS`) だけにし、
+`.mjs` は各自の環境で取得する形にした。配布行為が発生しないので問題が生じず、
+セキュリティ上の目的はそのまま維持できる。
+
+`setup-windows-tiling.ps1` は未取得・ハッシュ不一致を検出したら
+`vendor-zebar.ps1` を呼び、**検証に通ったものだけを配置する**。
+不一致のまま配置すると固定した意味が無くなるので、そこで失敗させている。
+
+**`SHA256SUMS` は取得のたびに書き換えてはいけない。**
+最初この設計を誤り、取得スクリプトが毎回 `SHA256SUMS` を作り直していた。
+これだと改竄された配信物のハッシュがそのまま次回の期待値として記録され、
+**2回目の実行から検証が素通りする**。信頼の基点を検証対象のデータで
+上書きしていることになる。既定では読むだけにし、
+書き換えは `-UpdateHashes` を明示したときだけに限定した。
+
+なお esm.sh の `?bundle` / `?standalone` / `?bundle-deps` はどれも依存を
+インライン化せず `/luxon@...` を絶対パスで参照したまま返してくるため、
+参照を再帰的に辿って書き換えている。luxon がエントリごとに全体入りで配信される
+関係で 600KB 強になるが、大半は同一内容の重複。
+
+**第三者コードを取り込むときはライセンスを確認すること。**
+「秘密情報が無い」ことと「再配布してよい」ことは別問題で、
+このリポジトリは公開されているため後者も満たす必要がある。
+
+**タスクバーの自動非表示はレジストリで書いても消える。**
+`StuckRects3` の `byte[8] bit0` を立てる方法が広く紹介されているが、
+explorer が起動時・終了時に自分の状態を書き戻すため潰される。
+`SHAppBarMessage(ABM_SETSTATE, ABS_AUTOHIDE)` を叩くのが確実。
+
+**Flow Launcher は終了時に `Settings.json` を書き戻す。**
+起動中に編集しても捨てられるので、必ずプロセスを止めてから触る。
+
+**Zebar は provider の更新を毎回 INFO で標準出力に吐く。**
+実測で 15 秒あたり約 18KB (時間あたり 4MB 強)。すべて stdout で stderr には出ない。
+CLI にログレベルの指定は無く、`LOG_LEVEL` / `RUST_LOG` を設定しても変わらない
+(バイナリ内にこれらの文字列はあるが、埋め込まれた別クレートのもの)。
+
+ログイン時に GlazeWM の `startup_commands` から起動される正常系では標準出力の
+行き先が無いので問題にならないが、**コンソールから `Start-Process zebar` すると
+その端末を埋め尽くす**。手で起動し直したいときは GlazeWM に起動させること。
+
+```powershell
+& 'C:\Program Files\glzr.io\GlazeWM\cli\glazewm.exe' command shell-exec zebar
+```
+
+**GlazeWM のプロセスは `Stop-Process` で落ちないことがある。**
+CLI 経由の IPC (`glazewm.exe command wm-exit`) なら確実に終了する。
+設定の再読み込みも `glazewm.exe command wm-reload-config` で足りる (再起動不要)。
+
+**Files は .NET Desktop Runtime 10 が無いと無言で起動失敗する。**
+プロセスも window も作られず、ブラウザでダウンロードページが開くだけなので
+原因が分かりにくい。`Microsoft.DotNet.DesktopRuntime.10` を依存として
+パッケージリストに入れてある。
+
+**`Files_1y0xx7n9077q4!App` は全マシン共通の定数。**
+MSIX の PackageFamilyName の後半は発行者文字列から決まるハッシュで、
+インストールごとに変わる値ではない。公開リポジトリに入れて問題ない
+(上記「安全/危険」の判断基準では「安全」側)。
 
 ## 前提: Windows に Nix は無い
 
@@ -256,6 +369,22 @@ Policies ブランチはグループポリシーの管理下にあり ACL で保
 あわせて `Set-Reg` に try/catch を入れ、1 項目の失敗で
 スクリプト全体が中断しないようにした (`$ErrorActionPreference = 'Stop'` のため
 以前は途中で止まり、サマリも explorer 再起動も実行されなかった)。
+
+### `TaskbarDa` だけ同じキーの中で書き込めない
+
+`Explorer\Advanced` は標準ユーザーで書けるキーだが、**`TaskbarDa` (ウィジェット非表示)
+への書き込みだけ `UnauthorizedAccessException` になる**。同じキーの
+`ShowTaskViewButton` は同一プロセス・同一権限で問題なく書ける。
+
+```
+Set-ItemProperty ...\Advanced -Name TaskbarDa          -Value 0   # 失敗
+Set-ItemProperty ...\Advanced -Name ShowTaskViewButton -Value 0   # 成功
+```
+
+レジストリの ACL は本来キー単位なので、値単位で弾かれる理由は特定できていない
+(この環境では既定値が `0` で、`Set-Reg` は `[skip]` に倒れるため実害は出ていない)。
+値が `1` の環境では `setup-windows-registry.ps1` の該当行が失敗としてカウントされる。
+その場合は「ウィジェットは設定アプリから手で切る」に落とすこと。
 
 ### `$PROFILE` は実際に OneDrive へリダイレクトされていた
 

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" type="text/css" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bar">
+      <div class="left">
+        <div class="workspaces" id="workspaces"></div>
+      </div>
+      <div class="center" id="clock"></div>
+      <div class="right" id="right"></div>
+    </div>
+
+    <script type="module">
+      // vendor/ に固めた zebar を読む。CDN から実行時に取得すると、
+      // バーの文脈 (GlazeWM のコマンド実行権を持つ) で第三者のコードが動く経路になり、
+      // 動的 import なので SRI も付けられない。オフラインでも描画されなくなる。
+      // 更新手順は vendor/README.md を参照。
+      import * as zebar from './vendor/zebar.mjs';
+
+      const providers = zebar.createProviderGroup({
+        glazewm: { type: 'glazewm' },
+        cpu: { type: 'cpu' },
+        memory: { type: 'memory' },
+        battery: { type: 'battery' },
+        network: { type: 'network' },
+        date: { type: 'date', formatting: 'EEE d MMM  HH:mm' },
+      });
+
+      const $workspaces = document.getElementById('workspaces');
+      const $clock = document.getElementById('clock');
+      const $right = document.getElementById('right');
+
+      // Workspace clicks are delegated so the buttons can be re-rendered
+      // freely on every provider tick.
+      $workspaces.addEventListener('click', e => {
+        const name = e.target.closest('[data-workspace]')?.dataset.workspace;
+        if (name) {
+          providers.outputMap.glazewm?.runCommand(`focus --workspace ${name}`);
+        }
+      });
+
+      $right.addEventListener('click', e => {
+        if (e.target.closest('[data-tiling]')) {
+          providers.outputMap.glazewm?.runCommand('toggle-tiling-direction');
+        }
+        if (e.target.closest('[data-paused]')) {
+          providers.outputMap.glazewm?.runCommand('wm-toggle-pause');
+        }
+      });
+
+      providers.onOutput(render);
+      render();
+
+      function render() {
+        const o = providers.outputMap;
+
+        // --- workspaces ---
+        const wm = o.glazewm;
+        $workspaces.innerHTML = !wm
+          ? ''
+          : wm.currentWorkspaces
+              .map(w => {
+                const cls = [
+                  'workspace',
+                  w.hasFocus ? 'focused' : '',
+                  w.isDisplayed && !w.hasFocus ? 'displayed' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ');
+                return `<button class="${cls}" data-workspace="${esc(w.name)}">${esc(
+                  w.displayName ?? w.name,
+                )}</button>`;
+              })
+              .join('');
+
+        // --- clock ---
+        $clock.textContent = o.date?.formatted ?? '';
+
+        // --- right cluster ---
+        const cells = [];
+
+        if (wm?.isPaused) {
+          cells.push(`<button class="cell paused" data-paused>PAUSED</button>`);
+        }
+
+        for (const mode of wm?.bindingModes ?? []) {
+          cells.push(
+            `<span class="cell mode">${esc(mode.displayName ?? mode.name)}</span>`,
+          );
+        }
+
+        if (wm) {
+          const dir = wm.tilingDirection === 'horizontal' ? '↔' : '↕';
+          cells.push(`<button class="cell tiling" data-tiling>${dir}</button>`);
+        }
+
+        const net = o.network;
+        if (net) {
+          const iface = net.defaultInterface?.type;
+          const label =
+            iface === 'wifi'
+              ? net.defaultGateway?.ssid || 'WIFI'
+              : iface === 'ethernet'
+                ? 'ETH'
+                : iface
+                  ? 'NET'
+                  : 'OFFLINE';
+          cells.push(
+            `<span class="cell ${iface ? '' : 'muted'}">${esc(label)}</span>`,
+          );
+        }
+
+        if (o.memory) {
+          cells.push(
+            `<span class="cell"><b>MEM</b>${Math.round(o.memory.usage)}%</span>`,
+          );
+        }
+
+        if (o.cpu) {
+          const hot = o.cpu.usage > 85 ? ' hot' : '';
+          cells.push(
+            `<span class="cell${hot}"><b>CPU</b>${Math.round(o.cpu.usage)}%</span>`,
+          );
+        }
+
+        if (o.battery) {
+          const pct = Math.round(o.battery.chargePercent);
+          const low = pct <= 20 && !o.battery.isCharging ? ' hot' : '';
+          const chg = o.battery.isCharging ? '⚡' : '';
+          cells.push(`<span class="cell${low}"><b>BAT</b>${chg}${pct}%</span>`);
+        }
+
+        $right.innerHTML = cells.join('');
+      }
+
+      function esc(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          c =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;',
+            })[c],
+        );
+      }
+    </script>
+  </body>
+</html>
