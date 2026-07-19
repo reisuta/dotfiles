@@ -241,3 +241,79 @@ grep -rnoE '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA
 
 なお `IntPtr hToken`（`SHSetKnownFolderPath` の引数名）は
 `token` パターンに引っかかるが誤検出。API のシグネチャなので問題ない。
+
+## 実機検証で判明したこと
+
+Windows 11 25H2 / build 26200.8875 / RAM 8GB の実機に適用して確認した内容。
+
+### `HKCU\Software\Policies` は HKCU でも管理者権限が要る
+
+`DisableSearchBoxSuggestions` を標準ユーザーで適用しようとすると
+`Access to the registry key ... is denied` で失敗する。
+Policies ブランチはグループポリシーの管理下にあり ACL で保護されているため。
+**「HKCU だから管理者不要」は成り立たない。** 管理者セクションに置くこと。
+
+あわせて `Set-Reg` に try/catch を入れ、1 項目の失敗で
+スクリプト全体が中断しないようにした (`$ErrorActionPreference = 'Stop'` のため
+以前は途中で止まり、サマリも explorer 再起動も実行されなかった)。
+
+### `$PROFILE` は実際に OneDrive へリダイレクトされていた
+
+```
+C:\Users\<user>\OneDrive\ドキュメント\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
+```
+
+`~\Documents\...` を決め打ちしていたら配置に失敗していた。必ず `$PROFILE` を評価する。
+なお OneDrive 配下なのでプロファイルは自動的に同期される。秘密情報を書かないこと。
+
+### `Get-Command` は「見つからない」ときが最も高コスト
+
+プロファイル起動が遅い原因の大半がこれだった。単一プロセス内での実測値:
+
+| 処理 | 時間 |
+|---|---|
+| `Get-Command` × 3 (未インストールのツール) | **1,458 ms** |
+| PATH を直接走査する `Test-Exe` × 3 | **44 ms** |
+| `Get-Module -ListAvailable PSReadLine` | 286 ms |
+
+全コマンド種別と PATHEXT を総当たりするため、不在の判定に最も時間がかかる。
+`[System.IO.File]::Exists` で PATH を直接見る方式へ変更し、
+PSReadLine は存在確認をやめて try/catch に変えた。
+
+プロファイル読み込み時間: **中央値 1,785 ms → 675 ms (約 2.6 倍)**
+
+計測はプロセス起動の差分ではなく、単一プロセス内で `Measure-Command { . $prof }`
+を使うこと。プロセス起動は分散が大きく (同条件で 2,298〜2,461 ms)、
+1 秒規模の改善が埋もれて見えなくなる。
+
+### WSL に渡すコマンドは引数ごとに分割する
+
+`'nvim .'` のように 1 つの文字列で渡すと全体が引用符で括られ、
+WSL は「`nvim .` という名前のコマンド」を探して失敗する。
+
+```powershell
+# 誤り
+$inner += @('--cd', $path, '--', 'nvim .')
+# 正しい
+$inner += @('--cd', $path, '--', 'nvim', '.')
+```
+
+さらに、起動先のコマンドが**未インストールでも何も起きないだけ**で
+エラーが表示されない。`dev-handler.ps1` は
+`command -v` で存在確認し、無ければシェルを開くだけに落とすようにした。
+
+### Windows Terminal は既存ウィンドウに「タブ」を開く
+
+そのため `Get-Process WindowsTerminal` の数で起動成否を判定してはいけない。
+検証には副作用の残る方法を使うこと。
+
+```powershell
+# 動作確認の定石: ファイルを書かせて中身を見る
+Start-Process wt.exe -ArgumentList 'wsl.exe','--cd','/path','--','sh','-c','pwd > /tmp/t.txt'
+```
+
+`wt.exe` は `--` 以降を正しく透過することを確認済み。
+
+### 冪等性は実機で確認済み
+
+2 回目の実行で「変更: 0 件 / 変更なし: 16 件 / 失敗: 0 件」となることを確認。

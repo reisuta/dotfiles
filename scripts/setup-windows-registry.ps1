@@ -4,9 +4,12 @@
     Windows のレジストリ設定を一括適用する。新しいマシンのセットアップ用。
 
 .DESCRIPTION
-    HKCU 部分は管理者不要・再起動不要 (explorer 再起動のみ)。
-    HKLM 部分 (Capslock -> Ctrl、ロングパス有効化) は管理者権限が必要で、
-    非管理者で実行した場合は自動的にスキップされる。
+    大半は管理者不要・再起動不要 (explorer 再起動のみ)。
+    Capslock -> Ctrl、ロングパス有効化、スタートメニューの Web 検索無効化は
+    管理者権限が必要で、非管理者で実行した場合は自動的にスキップされる。
+
+    注意: HKCU\Software\Policies 配下は HKCU でありながら ACL で保護されており、
+    標準ユーザーではキーを作成できない (Access denied)。管理者セクションに置く。
 
     すべて冪等。既に希望の値なら [skip] と表示して何もしない。
 
@@ -36,6 +39,7 @@ $ErrorActionPreference = 'Stop'
 
 $script:Changed = 0
 $script:Skipped = 0
+$script:Failed  = 0
 
 # ------------------------------------------------------------
 # ヘルパー
@@ -88,8 +92,16 @@ function Set-Reg {
 
     if ($DryRun) { return }
 
-    if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
-    New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
+    # 1 項目の失敗で全体を止めない。ACL で保護されたキー等は失敗しうる。
+    try {
+        if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
+        New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
+    }
+    catch {
+        Write-Host ("           失敗: {0}" -f $_.Exception.Message) -ForegroundColor Red
+        $script:Changed--
+        $script:Failed++
+    }
 }
 
 function Write-Section {
@@ -153,19 +165,19 @@ Set-Reg 'HKCU:\Control Panel\Mouse'    'MouseSpeed'      '0' -Type String -Note 
 Set-Reg 'HKCU:\Control Panel\Mouse'    'MouseThreshold1' '0' -Type String
 Set-Reg 'HKCU:\Control Panel\Mouse'    'MouseThreshold2' '0' -Type String
 
-Write-Section 'スタートメニューの Web 検索を無効化'
-Set-Reg 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 1 `
-    -Note 'Bing 検索候補を出さない'
-
 # ============================================================
-# HKLM: 要管理者
+# 要管理者のもの
+#
+# HKLM 全般に加え、HKCU\Software\Policies 配下もここに含める。
+# Policies ブランチは HKCU でありながら ACL で保護されており、
+# 標準ユーザーではキーを作成できない (Access denied)。
 # ============================================================
 
 Write-Section 'システム設定 (要管理者)'
 if (-not $isAdmin) {
     Write-Host '    管理者権限が無いためスキップしました。' -ForegroundColor DarkYellow
-    Write-Host '    Capslock->Ctrl とロングパス有効化を適用するには、' -ForegroundColor DarkYellow
-    Write-Host '    管理者 PowerShell で再実行してください。' -ForegroundColor DarkYellow
+    Write-Host '    Capslock->Ctrl / ロングパス / スタートメニューの Web 検索無効化を' -ForegroundColor DarkYellow
+    Write-Host '    適用するには、管理者 PowerShell で再実行してください。' -ForegroundColor DarkYellow
 }
 else {
     # Capslock を左 Ctrl にリマップ。
@@ -185,6 +197,10 @@ else {
 
     Set-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' 'LongPathsEnabled' 1 `
         -Note 'パス260文字制限を解除 (git / node_modules 対策)'
+
+    # HKCU 配下だが Policies ブランチは ACL 保護のため管理者が必要
+    Set-Reg 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 1 `
+        -Note 'スタートメニューの Bing 検索候補を出さない'
 }
 
 # ============================================================
@@ -192,7 +208,7 @@ else {
 # ============================================================
 
 Write-Host ''
-Write-Host ("変更: {0} 件 / 変更なし: {1} 件" -f $script:Changed, $script:Skipped) -ForegroundColor Green
+Write-Host ("変更: {0} 件 / 変更なし: {1} 件 / 失敗: {2} 件" -f $script:Changed, $script:Skipped, $script:Failed) -ForegroundColor Green
 
 if ($DryRun) {
     Write-Host 'DryRun のため何も書き込んでいません。' -ForegroundColor Magenta

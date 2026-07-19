@@ -19,8 +19,11 @@ $SearchDirs = '$HOME $HOME/Programming $HOME/Programming/ruby/rails'
 # 使う WSL ディストロ。空文字なら既定のディストロを使う。
 $Distro = ''
 
-# 開いたあとに実行するコマンド
-$OpenCommand = 'nvim .'
+# 開いたあとに起動するエディタと引数。
+# 必ず配列で持つこと。'nvim .' のように 1 つの文字列にすると
+# 引数全体が引用符で括られ、「nvim . という名前のコマンド」を探して失敗する。
+$Editor     = 'nvim'
+$EditorArgs = @('.')
 # -----------------------------------------------------------
 
 function Fail {
@@ -58,11 +61,23 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($resolved)) {
 }
 $resolved = $resolved.Trim()
 
-# 起動する。Windows Terminal があればそちらを優先する
-# (wt が無いと素の conhost になるが動作はする)
+# エディタが WSL 側に入っているか確認する。
+# 未インストールだと起動が即座に終了して「何も起きない」ため、
+# その場合はシェルをそのディレクトリで開くだけに落とす。
+& wsl.exe @wslArgs -e sh -c "command -v $Editor" | Out-Null
+$hasEditor = ($LASTEXITCODE -eq 0)
+
 $inner = @()
 if ($Distro) { $inner += @('-d', $Distro) }
-$inner += @('--cd', $resolved, '--', $OpenCommand)
+$inner += @('--cd', $resolved)
+if ($hasEditor) {
+    # 各引数を個別の要素として渡す
+    $inner += @('--', $Editor) + $EditorArgs
+}
+# エディタが無ければ '--' 以降を付けず、既定のログインシェルを開く
+
+# 起動する。Windows Terminal があればそちらを優先する
+# (wt が無ければ素の conhost になるが動作はする)
 
 if (Get-Command wt.exe -ErrorAction SilentlyContinue) {
     Start-Process wt.exe -ArgumentList (@('wsl.exe') + $inner)
