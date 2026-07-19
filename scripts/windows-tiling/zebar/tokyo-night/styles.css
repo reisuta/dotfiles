@@ -1,0 +1,154 @@
+/* Tokyo Night topbar — tuned for a 30px bar on a 1366x768 display. */
+
+:root {
+  --bg: #1a1b26;
+  --bg-alt: #24283b;
+  --surface: #292e42;
+  --fg: #c0caf5;
+  --fg-dim: #7f88b0;
+  --blue: #7aa2f7;
+  --purple: #bb9af7;
+  --cyan: #7dcfff;
+  --green: #9ece6a;
+  --red: #f7768e;
+  --yellow: #e0af68;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'JetBrainsMono Nerd Font', 'JetBrains Mono', Consolas, monospace;
+  font-size: 12px;
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+.bar {
+  height: 30px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 6px;
+  background: rgba(26, 27, 38, 0.92);
+  border-bottom: 1px solid var(--surface);
+}
+
+.left {
+  justify-self: start;
+}
+.center {
+  justify-self: center;
+  color: var(--fg);
+  letter-spacing: 0.02em;
+}
+.right {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --- workspaces --- */
+
+.workspaces {
+  display: flex;
+  gap: 3px;
+}
+
+.workspace {
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 2px;
+  font: inherit;
+  line-height: 1;
+  color: var(--fg-dim);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 90ms ease,
+    color 90ms ease;
+}
+
+.workspace:hover {
+  background: var(--surface);
+  color: var(--fg);
+}
+
+/* Visible on another monitor, but not focused. */
+.workspace.displayed {
+  background: var(--bg-alt);
+  color: var(--fg);
+}
+
+.workspace.focused {
+  background: var(--blue);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+/* --- right-hand cells --- */
+
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 2px;
+  font: inherit;
+  line-height: 1;
+  color: var(--fg);
+  background: var(--bg-alt);
+  white-space: nowrap;
+}
+
+.cell b {
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--blue);
+}
+
+.cell.muted {
+  color: var(--fg-dim);
+}
+
+.cell.hot,
+.cell.hot b {
+  color: var(--red);
+}
+
+button.cell {
+  cursor: pointer;
+}
+
+button.cell:hover {
+  background: var(--surface);
+}
+
+.cell.tiling {
+  color: var(--cyan);
+  font-size: 13px;
+  padding: 0 8px;
+}
+
+.cell.mode {
+  background: var(--purple);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.cell.paused {
+  background: var(--red);
+  color: var(--bg);
+  font-weight: 700;
+}
