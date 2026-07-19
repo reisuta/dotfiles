@@ -25,7 +25,14 @@ param(
     [string]$OutDir = '',
 
     # Zebar 本体のバージョンに合わせること (winget list glzr-io.zebar で確認)。
-    [string]$Entry = '/zebar@3.3.1/es2022/zebar.bundle.mjs'
+    [string]$Entry = '/zebar@3.3.1/es2022/zebar.bundle.mjs',
+
+    # SHA256SUMS を取得物で作り直す。バージョンを上げるときだけ使う。
+    #
+    # 既定では SHA256SUMS は「信頼の基点」として読むだけで、書き換えない。
+    # 取得のたびに上書きしてしまうと、改竄された配信物のハッシュが
+    # そのまま次回の期待値になり、検証が意味を失うため。
+    [switch]$UpdateHashes
 )
 
 Set-StrictMode -Version Latest
@@ -39,10 +46,18 @@ if (-not $OutDir) {
 
 if (-not (Test-Path $OutDir)) { New-Item -ItemType Directory -Path $OutDir -Force | Out-Null }
 
-# 消すのは取得物だけ。README.md と .gitignore は版管理下なので残す。
-Get-ChildItem $OutDir -File |
-    Where-Object { $_.Extension -eq '.mjs' -or $_.Name -eq 'SHA256SUMS' } |
-    Remove-Item -Force
+$sumsPath = Join-Path $OutDir 'SHA256SUMS'
+
+# 既存の期待ハッシュを先に読み込む。取得物で上書きする前に確保しておく。
+$expected = @{}
+if (Test-Path $sumsPath) {
+    foreach ($line in (Get-Content $sumsPath)) {
+        if ($line -match '^([0-9a-f]{64})\s+(.+)$') { $expected[$Matches[2]] = $Matches[1] }
+    }
+}
+
+# 消すのは取得物だけ。README.md / .gitignore / SHA256SUMS は残す。
+Get-ChildItem $OutDir -File -Filter '*.mjs' | Remove-Item -Force
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
@@ -113,15 +128,47 @@ if ($leaked) {
     throw '取得に失敗しました。'
 }
 
-# 取得物のハッシュ一覧を残す。これはリポジトリに入れて版管理し、
-# setup-windows-tiling.ps1 が取得物の検証に使う。
-# (.mjs 本体はライセンス上リポジトリに入れられないため、
-#  「何を取ってくるべきか」だけを版管理する形にしている)
-$sums = Get-ChildItem $OutDir -File -Filter '*.mjs' | Sort-Object Name | ForEach-Object {
-    '{0}  {1}' -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
+# 取得物のハッシュを算出する。
+$actual = @{}
+foreach ($f in (Get-ChildItem $OutDir -File -Filter '*.mjs' | Sort-Object Name)) {
+    $actual[$f.Name] = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
 }
-[System.IO.File]::WriteAllText((Join-Path $OutDir 'SHA256SUMS'), (($sums -join "`n") + "`n"), $utf8NoBom)
 
-$size = (Get-ChildItem $OutDir -File | Measure-Object Length -Sum).Sum / 1KB
-Write-Host ("完了: {0} ファイル / {1:N0} KB / 外部参照なし" -f ($count + 1), $size) -ForegroundColor Green
-Write-Host ("SHA256SUMS を更新しました ({0} 件)。差分が出たら取得元の変更を意味する。" -f $sums.Count) -ForegroundColor Gray
+if ($expected.Count -gt 0 -and -not $UpdateHashes) {
+    # 既存の SHA256SUMS が信頼の基点。取得物をこれと突き合わせる。
+    # 一致しなければ配信内容が変わったということなので、上書きせずに落とす。
+    $diff = @()
+    foreach ($name in ($expected.Keys | Sort-Object)) {
+        if (-not $actual.ContainsKey($name)) { $diff += "$name : 取得できなかった" ; continue }
+        if ($actual[$name] -ne $expected[$name]) { $diff += "$name : ハッシュ不一致" }
+    }
+    foreach ($name in ($actual.Keys | Sort-Object)) {
+        if (-not $expected.ContainsKey($name)) { $diff += "$name : SHA256SUMS に無いファイル" }
+    }
+
+    Write-Host ''
+    if ($diff) {
+        Write-Host 'SHA256SUMS と一致しません:' -ForegroundColor Red
+        $diff | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+        Write-Host ''
+        Write-Host '取得元の配信内容が変わっています。中身を確認するまで受け入れないこと。' -ForegroundColor Red
+        Write-Host '意図した更新 (バージョン変更など) なら -UpdateHashes を付けて再実行する。' -ForegroundColor Yellow
+        throw 'ハッシュ検証に失敗しました。'
+    }
+    Write-Host ("検証OK: {0} ファイルが SHA256SUMS と一致 / 外部参照なし" -f $actual.Count) -ForegroundColor Green
+}
+else {
+    # 初回、または -UpdateHashes を明示したとき。ここでだけ基点を書き換える。
+    $sums = ($actual.Keys | Sort-Object | ForEach-Object { '{0}  {1}' -f $actual[$_], $_ })
+    [System.IO.File]::WriteAllText($sumsPath, (($sums -join "`n") + "`n"), $utf8NoBom)
+    Write-Host ''
+    if ($UpdateHashes) {
+        Write-Host ("SHA256SUMS を更新しました ({0} 件)。差分を必ずレビューしてからコミットすること。" -f $sums.Count) -ForegroundColor Yellow
+    }
+    else {
+        Write-Host ("SHA256SUMS を新規作成しました ({0} 件)。" -f $sums.Count) -ForegroundColor Yellow
+    }
+}
+
+$size = (Get-ChildItem $OutDir -File -Filter '*.mjs' | Measure-Object Length -Sum).Sum / 1KB
+Write-Host ("取得: {0} ファイル / {1:N0} KB" -f $actual.Count, $size) -ForegroundColor Green

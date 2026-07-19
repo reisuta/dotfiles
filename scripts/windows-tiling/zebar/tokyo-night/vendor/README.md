@@ -46,15 +46,21 @@ zebar は GPL-3.0 なのでさらに重く、ライセンス全文の同梱と�
 powershell -ExecutionPolicy Bypass -File .\scripts\windows-tiling\vendor-zebar.ps1
 ```
 
-取得後に外部参照が残っていないか自動検査し、残っていればエラーで落ちる。
-`SHA256SUMS` も同時に更新される。
+取得後に (1) 外部参照が残っていないか (2) `SHA256SUMS` と一致するか を自動検査し、
+どちらか失敗すればエラーで落ちる。
 
-Zebar 本体を更新したらバージョンを合わせること。
+**`SHA256SUMS` は既定では読むだけで書き換えない。**
+取得のたびに上書きしてしまうと、改竄された配信物のハッシュがそのまま次回の
+期待値になり、検証が意味を失うため。書き換えるのは `-UpdateHashes` を
+明示したときだけ。
+
+Zebar 本体を更新するときはこうする。
 
 ```powershell
 winget list glzr-io.zebar          # 実機のバージョンを確認
 # vendor-zebar.ps1 の $Entry を /zebar@<version>/es2022/zebar.bundle.mjs に変更
-# 実行後、SHA256SUMS の差分をコミットする
+powershell -ExecutionPolicy Bypass -File .\scripts\windows-tiling\vendor-zebar.ps1 -UpdateHashes
+# SHA256SUMS の差分をレビューしてからコミットする
 ```
 
 `zebar.mjs` は入口の再エクスポート。実体のファイル名にバージョンが入るため、
@@ -68,9 +74,15 @@ esm.sh は依存を `/luxon@3.4.4/...` のような絶対パスで参照した�
 生の取得物と数十バイトずれるのはこのため。
 
 同一バージョンを続けて取得した場合、ハッシュは一致することを確認済み。
-**差分が出たら取得元の配信内容が変わったことを意味する。**
-バージョンを上げた覚えが無いのに差分が出た場合は、中身を確認するまで配置しないこと。
-`setup-windows-tiling.ps1` は不一致を検出したら配置せずに失敗する。
+**不一致が出たら取得元の配信内容が変わったことを意味する。**
+
+不一致時の挙動は実機で検証済み:
+
+- `vendor-zebar.ps1` … `SHA256SUMS` を上書きせずエラー終了する
+- `setup-windows-tiling.ps1` … 検証に落ちたものを配置せず失敗としてカウントする
+
+バージョンを上げた覚えが無いのに不一致が出たら、中身を確認するまで
+`-UpdateHashes` を付けないこと。付けた瞬間に信頼の基点が置き換わる。
 
 ## 構成上の注意
 
