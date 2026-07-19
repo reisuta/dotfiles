@@ -179,3 +179,65 @@ Windows PowerShell 5.1 は **BOM が無いファイルを ANSI として読む**
 | エクスプローラー表示、右クリック | explorer 再起動 |
 | キーリピート、マウス | 再ログオン |
 | Capslock → Ctrl、ロングパス、`.wslconfig` | 再起動 (`.wslconfig` は `wsl --shutdown`) |
+
+## 公開リポジトリに入れる前の確認
+
+このリポジトリは公開されている。Windows の設定は
+**GUID や 16 進バイナリという「見た目が機密っぽい値」**を大量に含むため、
+何が安全で何が危険かを取り違えないこと。
+
+判断基準はひとつ。**その値が「全マシン共通の定数」か「この環境で生成された固有値」か。**
+見た目が暗号鍵じみているかどうかは判断材料にならない。
+
+### 安全（Microsoft が定義した定数。全マシンで同一）
+
+| 種類 | 例 | 用途 |
+|---|---|---|
+| CLSID / IID | `86ca1aa0-34aa-4e8b-a509-50c905bae2a2` | Win11 コンテキストメニューハンドラ |
+| KNOWNFOLDERID | `b7bede81-df94-4682-a7d8-57a52620b86f` | `FOLDERID_Screenshots` |
+| スキャンコード | `1D` = 左Ctrl / `3A` = CapsLock | Scancode Map |
+
+`Scancode Map` の `00 00 00 00 ... 02 00 00 00 1D 00 3A 00 ...` は
+**「CapsLock を左Ctrl に割り当てる」以上の情報を持たない**。
+ヘッダ・エントリ数・変換ペアという文書化された構造で、環境依存の値は入らない。
+不透明な 16 進に見えるが、実際のエントロピーはほぼゼロ。
+
+### 危険（環境固有に生成される。絶対にコミットしない）
+
+| 種類 | 場所 | 漏れる情報 |
+|---|---|---|
+| MachineGuid | `HKLM\SOFTWARE\Microsoft\Cryptography` | インストール単位で一意。追跡子になる |
+| SID | `S-1-5-21-...` | ローカル/ドメインのアカウントを特定 |
+| Azure / Entra のテナント ID・サブスクリプション ID | — | 組織を特定 |
+| プロダクト ID、デジタルライセンス | — | ライセンス実体 |
+| LSA シークレット、SAM、DPAPI マスターキー | `HKLM\SECURITY`、`HKLM\SAM` | 認証情報そのもの |
+| ボリューム GUID、MDM 登録 ID | — | ハードウェア/管理下の識別 |
+
+### 特に注意: バイナリ値は中身に個人情報が入りうる
+
+`Bags` / `BagMRU`、`ComDlg32\LastVisitedPidlMRU`、`RecentDocs` などは
+**フォルダ構成やファイル名の履歴が丸ごと埋まっている**。
+「エクスプローラーの列設定を持ち回るために Bags をエクスポートする」案が
+筋悪なのは、版管理に耐えないという理由だけでなく、
+**ディレクトリ構成が公開リポジトリに漏れる**ためでもある。
+
+### コミット前のスキャン
+
+認証情報のパターンだけでは GUID を拾えない。両方を走らせること。
+
+```sh
+# 認証情報・個人パス
+grep -rn -i -e password -e secret -e token -e api_key -e private_key \
+  -e ssh-rsa -e AKIA -e ghp_ -e github_pat -e Bearer -e credential \
+  -e /home/ -e /mnt/c -e '@gmail' .
+
+# GUID の全数確認（ヒットしたら上表のどちらかに分類する）
+grep -rnoE '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' .
+
+# 自分の MachineGuid / SID が混入していないかの直接確認（PowerShell 側）
+#   (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Cryptography').MachineGuid
+#   ([Security.Principal.WindowsIdentity]::GetCurrent()).User.Value
+```
+
+なお `IntPtr hToken`（`SHSetKnownFolderPath` の引数名）は
+`token` パターンに引っかかるが誤検出。API のシグネチャなので問題ない。
