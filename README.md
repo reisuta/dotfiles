@@ -576,3 +576,10 @@ chezmoi forget ~/.gitconfig
 | `run_once_after_<...>` | apply 後に実行 |
 
 組み合わせ可: `private_executable_dot_foo` のように複数プレフィックスを連結できる。
+
+---
+
+## ライセンス
+
+MIT License（[LICENSE](LICENSE)）。設定は自由にコピー・改変して使ってよい。
+ただし `vendor/` 配下や `three.min.js` のような同梱のサードパーティ製ファイルは、それぞれ元のライセンスに従う。
