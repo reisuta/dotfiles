@@ -33,11 +33,16 @@ plugins-update:
     nvim --headless "+Lazy! sync" +qa
     @echo "==> Neovim plugins synced"
 
-# 現在のローカル brew 環境から Brewfile を再生成 (macOS 専用)
-brewfile-dump:
+# flake.nix を macOS に適用 (macOS 専用。flake は git 管理下のファイルしか見ないので先に git add)
+darwin-switch:
     @[ "$(uname -s)" = "Darwin" ] || { echo "macOS 専用です"; exit 1; }
-    brew bundle dump --file=Brewfile --force
-    @echo "==> Brewfile updated. git diff で変更を確認してください。"
+    sudo darwin-rebuild switch --flake "{{ justfile_directory() }}#$(uname -m | sed 's/arm64/aarch64/')-darwin"
+
+# nixpkgs / nix-darwin を最新化して適用 (macOS 専用。flake.lock の差分をコミットすること)
+darwin-update:
+    @[ "$(uname -s)" = "Darwin" ] || { echo "macOS 専用です"; exit 1; }
+    nix flake update --flake {{ justfile_directory() }}
+    @just darwin-switch
 
 # 現在の chezmoi 管理状態をアーカイブ (バックアップ)
 backup:
