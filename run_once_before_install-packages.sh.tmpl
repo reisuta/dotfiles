@@ -3,7 +3,7 @@
 # chezmoi が apply 前に1度だけ実行する (script content が変わると再実行される)。
 #
 # パッケージリストのハッシュを埋め込むことで、リスト変更時に再実行される:
-#   Brewfile:        {{ include "Brewfile" | sha256sum }}
+#   flake.nix:       {{ include "flake.nix" | sha256sum }}
 #   archpkgs.txt:    {{ include "archpkgs.txt" | sha256sum }}
 #   archpkgs-gui:    {{ include "archpkgs-gui.txt" | sha256sum }}
 #   archpkgs-aur:    {{ include "archpkgs-aur.txt" | sha256sum }}
@@ -18,17 +18,34 @@ DOTFILES="{{ .chezmoi.sourceDir }}"
 # ============================================================
 # macOS
 # ============================================================
-echo "==> [macOS] Installing packages via Homebrew"
+echo "==> [macOS] Installing packages via nix-darwin"
 
-# Homebrew が無ければインストール
-if ! command -v brew >/dev/null 2>&1; then
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    if [ -f /opt/homebrew/bin/brew ]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
+# Nix が無ければ Determinate Nix をインストール (flakes 有効・macOS 更新に強い)
+if ! command -v nix >/dev/null 2>&1; then
+    if [ ! -x /nix/var/nix/profiles/default/bin/nix ]; then
+        curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix \
+            | sh -s -- install --no-confirm
     fi
+    # shellcheck disable=SC1091
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 fi
 
-brew bundle --file="$DOTFILES/Brewfile"
+# flake.nix の darwinConfigurations は <arch>-darwin で定義してある
+case "$(uname -m)" in
+    arm64)  DARWIN_SYSTEM="aarch64-darwin" ;;
+    x86_64) DARWIN_SYSTEM="x86_64-darwin" ;;
+    *) echo "未対応のアーキテクチャ: $(uname -m)"; exit 1 ;;
+esac
+
+# 初回は darwin-rebuild 自体が無いので flake から直接実行する
+if command -v darwin-rebuild >/dev/null 2>&1; then
+    sudo darwin-rebuild switch --flake "$DOTFILES#$DARWIN_SYSTEM"
+else
+    sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake "$DOTFILES#$DARWIN_SYSTEM"
+fi
+
+# 以降のコマンド (oh-my-zsh / npm) が nix-darwin のパッケージを見られるようにする
+export PATH="/run/current-system/sw/bin:$PATH"
 
 {{ else if eq .chezmoi.os "linux" -}}
 {{- $isWsl := .chezmoi.kernel.osrelease | lower | contains "microsoft" -}}

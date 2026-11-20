@@ -58,13 +58,16 @@ fi
 if [ -n "$ZSH_PATH" ]; then
     if [ "$OS" = "darwin" ]; then
         CURRENT_SHELL="$(dscl . -read "/Users/$USER" UserShell 2>/dev/null | awk '{print $2}')"
+        # macOS はログインシェルを /bin/zsh に固定する (run_once_after_change-shell.sh.tmpl 参照)
+        EXPECTED_SHELL="/bin/zsh"
     else
         CURRENT_SHELL="$(getent passwd "$USER" | cut -d: -f7)"
+        EXPECTED_SHELL="$ZSH_PATH"
     fi
-    if [ "$CURRENT_SHELL" = "$ZSH_PATH" ]; then
-        ok "default shell is zsh"
+    if [ "$CURRENT_SHELL" = "$EXPECTED_SHELL" ]; then
+        ok "default shell is zsh ($CURRENT_SHELL)"
     else
-        fail "default shell is $CURRENT_SHELL (expected $ZSH_PATH)"
+        fail "default shell is $CURRENT_SHELL (expected $EXPECTED_SHELL)"
     fi
 fi
 

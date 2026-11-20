@@ -53,7 +53,7 @@ just install
 
 | OS | パッケージマネージャ | メインターミナル |
 |---|---|---|
-| macOS (Apple Silicon / Intel) | Homebrew | WezTerm |
+| macOS (Apple Silicon / Intel) | Nix (nix-darwin) | WezTerm |
 | Arch Linux (native) | pacman | kitty |
 | Arch Linux (WSL) | pacman | (Windows 側 WezTerm) |
 | Ubuntu / Debian (native) | apt + curl | kitty |
@@ -88,7 +88,7 @@ just install
 3. `~/.config/chezmoi/chezmoi.toml` を生成 (`.chezmoi.toml.tmpl` から)
    - `mode = "symlink"` → 設定ファイルは symlink 配置
 4. `run_once_before_install-packages.sh.tmpl` 実行 (1回限り)
-   - macOS: `brew bundle --file=Brewfile`
+   - macOS: Determinate Nix を導入し、`darwin-rebuild switch --flake` で `flake.nix` を適用
    - Arch: `pacman -S` でパッケージ一括インストール
    - Ubuntu: `apt install` + curl で atuin/mise/eza/starship を別途取得
    - 全 OS 共通: oh-my-zsh 取得 (プロンプトは Starship)
@@ -270,7 +270,8 @@ Available recipes:
     doctor         # 環境ヘルスチェック (副作用なし)
     lint           # シェルスクリプトの静的解析
     plugins-update # Neovim プラグインを最新化 (lazy.nvim sync)
-    brewfile-dump  # 現在のローカル brew 環境から Brewfile を再生成 (macOS 専用)
+    darwin-switch  # flake.nix を macOS に適用 (macOS 専用)
+    darwin-update  # nixpkgs / nix-darwin を最新化して適用 (macOS 専用)
     backup         # 現在の chezmoi 管理状態をアーカイブ (バックアップ)
     status         # chezmoi 管理対象 + 未管理ファイルの一覧
 ```
@@ -328,7 +329,7 @@ $ just doctor
   OS:     darwin
 
 ==> シェル
-  ✓ zsh installed: /opt/homebrew/bin/zsh
+  ✓ zsh installed: /bin/zsh
   ✓ default shell is zsh
   ✓ oh-my-zsh installed
   ✓ starship installed
@@ -360,24 +361,25 @@ just plugins-update
 
 ---
 
-#### `just brewfile-dump` (macOS 専用)
+#### `just darwin-switch` / `just darwin-update` (macOS 専用)
 
-> 🟡 限定的な副作用 (Brewfile 上書き)
+> 🟡 限定的な副作用 (システムパッケージ入れ替え、sudo 要)
 
 **いつ使う?**
-- 手動で `brew install` した後、それを Brewfile に反映させたいとき
-- macOS 環境を真の正としてリポジトリ側を最新化したいとき
+- `flake.nix` にパッケージを足した・消したとき → `darwin-switch`
+- パッケージを最新版に上げたいとき → `darwin-update`
 
 **何が起きる?**
-- 現在の brew 環境を読み取って `Brewfile` を上書き生成
-- `brew bundle dump --file=Brewfile --force` を実行
-- 既存の手書きコメントは消える (注意)
+- `darwin-switch`: `sudo darwin-rebuild switch --flake .#<arch>-darwin` を実行
+- `darwin-update`: `nix flake update` で `flake.lock` を更新してから `darwin-switch`
+- flake は **git 管理下のファイルしか見ない**。新規ファイルは先に `git add` すること
 
 **例**
 
 ```bash
-just brewfile-dump
-git -C ~/dotfiles diff Brewfile   # 何が変わったか確認
+git -C ~/dotfiles add flake.nix
+just darwin-switch
+just darwin-update && git -C ~/dotfiles diff flake.lock
 ```
 
 ---
@@ -394,7 +396,7 @@ git -C ~/dotfiles diff Brewfile   # 何が変わったか確認
 - `.tmpl` ファイルは chezmoi 処理が必要なので対象外
 
 **前提**
-- shellcheck がインストール済 (macOS: `brew install shellcheck`)
+- shellcheck がインストール済 (macOS: `nix shell nixpkgs#shellcheck`)
 
 ---
 
@@ -499,7 +501,7 @@ chezmoi forget ~/.gitconfig
 | Neovim プラグインを更新したい | `just plugins-update` |
 | ホーム既存ファイルを管理下に追加 | `chezmoi add ~/.foo` |
 | パッケージリスト変更後、再インストール | `chezmoi state delete-bucket --bucket=scriptState && chezmoi apply -v` |
-| brew で入れたツールを Brewfile に反映 | `just brewfile-dump` (macOS) |
+| macOS のパッケージを追加・更新 | `flake.nix` 編集 → `just darwin-switch` / `just darwin-update` |
 | 設定が壊れた、リセットしたい | `chezmoi diff` で確認 → `chezmoi apply --force` |
 
 ---
@@ -521,7 +523,7 @@ chezmoi forget ~/.gitconfig
 │   - just doctor       : 環境健全性チェック                   │
 │   - just lint         : シェルスクリプト品質チェック          │
 │   - just plugins-update: Neovim プラグイン同期               │
-│   - just brewfile-dump: 現環境から Brewfile 再生成 (macOS)   │
+│   - just darwin-switch: flake.nix を macOS に適用            │
 │   - just backup       : 現状をスナップショット               │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -537,7 +539,7 @@ chezmoi forget ~/.gitconfig
 ├── .chezmoi.toml.tmpl            ← chezmoi 自身の設定 (symlink モード等)
 ├── .chezmoiignore.tmpl           ← OS 別の除外ルール
 ├── .gitattributes                ← Linguist 言語検出の上書き
-├── Brewfile                      ← macOS パッケージリスト
+├── flake.nix                     ← macOS パッケージ定義 (nix-darwin)
 ├── archpkgs.txt                  ← Arch ベースパッケージ
 ├── archpkgs-gui.txt              ← Arch GUI (WSL では除外)
 ├── aptpkgs.txt                   ← Ubuntu/Debian ベースパッケージ

@@ -244,7 +244,7 @@ winget install QL-Win.QuickLook      # Space 単独キー
 
 ### WinGet Configuration (DSC)
 
-`aptpkgs.txt` / `Brewfile` の Windows 版として一番筋が良い。
+`aptpkgs.txt` / `flake.nix` の Windows 版として一番筋が良い。
 冪等性・依存順序・差分検出を処理系側が見てくれる。
 
 ```yaml

@@ -4,8 +4,9 @@ chezmoi 管理。`~/dotfiles` を source に apply。macOS / Arch / WSL Ubuntu �
 `.chezmoiignore.tmpl` と `run_once_*.tmpl` の OS 分岐で出し分ける。
 
 ## パッケージの正
-apt=`aptpkgs.txt` / npm=`npmpkgs.txt` / brew=`Brewfile` / pacman=`archpkgs*.txt`。
+apt=`aptpkgs.txt` / npm=`npmpkgs.txt` / macOS=`flake.nix` (nix-darwin) / pacman=`archpkgs*.txt`。
 これらが唯一の正で、Dockerfile と chezmoi の両方が読む。追加はリストだけ編集する。
+macOS は Homebrew を使わない。flake は git 管理下のファイルしか見ないので、編集後は `git add` してから `just darwin-switch`。
 
 ## 注意点
 - 公開 repo。実ユーザー名・メール・社内情報を書かない（identity はビルド時に注入）。
